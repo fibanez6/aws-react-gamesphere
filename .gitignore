@@ -92,3 +92,5 @@ storybook-static/
 # Misc
 *.pem
 *.key
+
+*.test*

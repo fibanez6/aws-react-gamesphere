@@ -24,8 +24,8 @@ Resources:
   # Users Table
   UsersTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-users'
       BillingMode: !Ref BillingMode
@@ -67,8 +67,8 @@ Resources:
   # Games Table
   GamesTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-games'
       BillingMode: !Ref BillingMode
@@ -102,8 +102,8 @@ Resources:
   # Friends Table (Adjacency List Pattern)
   FriendsTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-friends'
       BillingMode: !Ref BillingMode
@@ -149,8 +149,8 @@ Resources:
   # Game Sessions Table
   SessionsTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-sessions'
       BillingMode: !Ref BillingMode
@@ -207,8 +207,8 @@ Resources:
   # Achievements Table
   AchievementsTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-achievements'
       BillingMode: !Ref BillingMode
@@ -250,8 +250,8 @@ Resources:
   # Activities Table (Feed)
   ActivitiesTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-activities'
       BillingMode: !Ref BillingMode
@@ -298,8 +298,8 @@ Resources:
   # Leaderboard Table
   LeaderboardTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-leaderboard'
       BillingMode: !Ref BillingMode
@@ -335,8 +335,8 @@ Resources:
   # Player Stats Table
   PlayerStatsTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub '${ProjectName}-${Environment}-player-stats'
       BillingMode: !Ref BillingMode

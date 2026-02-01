@@ -16,12 +16,16 @@ Parameters:
     Default: gamesphere
     Description: Project name used for resource naming
 
+  TemplatesBucketName:
+    Type: String
+    Description: S3 bucket name where nested stack templates are stored
+
 Resources:
   # Cognito Stack
   CognitoStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./cognito.yaml
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${TemplatesBucketName}/templates/cognito.yaml'
       Parameters:
         Environment: !Ref Environment
         ProjectName: !Ref ProjectName
@@ -35,7 +39,7 @@ Resources:
   DynamoDBStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./dynamodb.yaml
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${TemplatesBucketName}/templates/dynamodb.yaml'
       Parameters:
         Environment: !Ref Environment
         ProjectName: !Ref ProjectName
@@ -52,7 +56,7 @@ Resources:
       - CognitoStack
       - DynamoDBStack
     Properties:
-      TemplateURL: ./appsync.yaml
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${TemplatesBucketName}/templates/appsync.yaml'
       Parameters:
         Environment: !Ref Environment
         ProjectName: !Ref ProjectName
@@ -81,7 +85,7 @@ Resources:
   HostingStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./hosting.yaml
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${TemplatesBucketName}/templates/hosting.yaml'
       Parameters:
         Environment: !Ref Environment
         ProjectName: !Ref ProjectName
@@ -97,36 +101,42 @@ Outputs:
     Description: Cognito User Pool ID
     Value: !GetAtt CognitoStack.Outputs.UserPoolId
     Export:
-      Name: !Sub '${ProjectName}-${Environment}-UserPoolId'
+      Name: !Sub '${ProjectName}-${Environment}-main-UserPoolId'
 
   UserPoolClientId:
     Description: Cognito User Pool Client ID
     Value: !GetAtt CognitoStack.Outputs.UserPoolClientId
     Export:
-      Name: !Sub '${ProjectName}-${Environment}-UserPoolClientId'
+      Name: !Sub '${ProjectName}-${Environment}-main-UserPoolClientId'
 
   # AppSync Outputs
   GraphQLApiEndpoint:
     Description: AppSync GraphQL API Endpoint
     Value: !GetAtt AppSyncStack.Outputs.GraphQLApiEndpoint
     Export:
-      Name: !Sub '${ProjectName}-${Environment}-GraphQLApiEndpoint'
+      Name: !Sub '${ProjectName}-${Environment}-main-GraphQLApiEndpoint'
 
   GraphQLApiId:
     Description: AppSync GraphQL API ID
     Value: !GetAtt AppSyncStack.Outputs.GraphQLApiId
     Export:
-      Name: !Sub '${ProjectName}-${Environment}-GraphQLApiId'
+      Name: !Sub '${ProjectName}-${Environment}-main-GraphQLApiId'
 
   # Hosting Outputs
   WebsiteURL:
     Description: CloudFront Distribution URL
     Value: !GetAtt HostingStack.Outputs.WebsiteURL
     Export:
-      Name: !Sub '${ProjectName}-${Environment}-WebsiteURL'
+      Name: !Sub '${ProjectName}-${Environment}-main-WebsiteURL'
 
   S3BucketName:
     Description: S3 Bucket for frontend assets
     Value: !GetAtt HostingStack.Outputs.S3BucketName
     Export:
-      Name: !Sub '${ProjectName}-${Environment}-S3BucketName'
+      Name: !Sub '${ProjectName}-${Environment}-main-S3BucketName'
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !GetAtt HostingStack.Outputs.CloudFrontDistributionId
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-main-CloudFrontDistributionId'

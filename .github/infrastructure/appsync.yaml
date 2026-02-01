@@ -104,8 +104,8 @@ Resources:
       Description: API Key for public access
       Expires: !If
         - IsProd
-        - 1767225600  # 2026-01-01
-        - 1735689600  # 2025-01-01
+        - 1785628800  # 2026-07-31 (180 days) - Min 1 day
+        - 1785628800  # 2026-07-31 (180 days) - Max 365 days
 
   # CloudWatch Logs Role for AppSync
   AppSyncLogsRole:
@@ -232,22 +232,26 @@ Resources:
           
           # Activity Mutations
           createActivity(input: CreateActivityInput!): Activity!
+          
+          # Leaderboard Mutations
+          updateLeaderboard(type: LeaderboardType!, entries: [LeaderboardEntryInput!]!): LeaderboardUpdateEvent!
         }
 
         type Subscription {
           # Friend Subscriptions
-          onFriendStatusChange(userId: ID!): FriendStatusEvent
+          onFriendStatusChange(userId: ID!): User
             @aws_subscribe(mutations: ["updateUserStatus"])
           
           onFriendActivity(userId: ID!): Activity
             @aws_subscribe(mutations: ["createActivity"])
           
           # Session Subscriptions
-          onLiveSessionUpdate: GameSessionEvent
+          onLiveSessionUpdate: GameSession
             @aws_subscribe(mutations: ["startGameSession", "endGameSession", "updateGameSession"])
           
           # Leaderboard Subscriptions
           onLeaderboardUpdate(type: LeaderboardType!): LeaderboardUpdateEvent
+            @aws_subscribe(mutations: ["updateLeaderboard"])
         }
 
         # Types
@@ -364,7 +368,7 @@ Resources:
 
         type GameSession {
           id: ID!
-          oderId: ID!
+          userId: ID!
           username: String!
           avatar: String
           gameId: ID!
@@ -394,7 +398,7 @@ Resources:
 
         # Events
         type FriendStatusEvent {
-          oderId: ID!
+          userId: ID!
           status: UserStatus!
           currentGame: String
         }
@@ -445,6 +449,17 @@ Resources:
           description: String
           gameId: ID
           gameName: String
+        }
+
+        input LeaderboardEntryInput {
+          userId: ID!
+          username: String!
+          avatar: String
+          rank: Int!
+          previousRank: Int
+          score: Int!
+          change: Int
+          userRank: Rank!
         }
 
         # Enums

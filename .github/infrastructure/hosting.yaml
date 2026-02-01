@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+# UpdateReplacePolicy: Retain: '2010-09-09'
 Description: 'GameSphere - S3 and CloudFront Hosting for Frontend'
 
 Parameters:
@@ -31,10 +31,10 @@ Resources:
   # S3 Bucket for Frontend Assets
   WebsiteBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub '${ProjectName}-${Environment}-website-${AWS::AccountId}'
+      BucketName: !Sub '${ProjectName}-${Environment}'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -241,10 +241,10 @@ Resources:
   LogsBucket:
     Type: AWS::S3::Bucket
     Condition: IsProd
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub '${ProjectName}-${Environment}-logs-${AWS::AccountId}'
+      BucketName: !Sub '${ProjectName}-${Environment}-logs'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true

@@ -5,10 +5,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Configuration
 PROJECT_NAME="gamesphere"
 ENVIRONMENT="${1:-dev}"
-REGION="${2:-us-east-1}"
+REGION="${2:-ap-southeast-2}"
 STACK_NAME="${PROJECT_NAME}-${ENVIRONMENT}"
 
 # Colors for output
@@ -43,7 +45,7 @@ echo -e "AWS Account: ${YELLOW}${ACCOUNT_ID}${NC}"
 echo ""
 
 # Create S3 bucket for CloudFormation templates
-CFN_BUCKET="${PROJECT_NAME}-cfn-${ACCOUNT_ID}-${REGION}"
+CFN_BUCKET="${PROJECT_NAME}-cfn-templates"
 echo -e "${YELLOW}Creating/checking S3 bucket for templates...${NC}"
 
 if ! aws s3api head-bucket --bucket "${CFN_BUCKET}" 2>/dev/null; then
@@ -56,7 +58,7 @@ fi
 # Upload templates to S3
 echo ""
 echo -e "${YELLOW}Uploading templates to S3...${NC}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 aws s3 sync "${SCRIPT_DIR}" "s3://${CFN_BUCKET}/templates/" \
     --exclude "*.sh" \
     --exclude "*.md" \
