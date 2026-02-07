@@ -47,7 +47,7 @@ const createEnvironmentConfig = (): EnvironmentConfig => {
       environment: 'development',
       useMockData: false,
       enableDebugLogs: true,
-      apiTimeout: 10000,
+      apiTimeout: 1000,
     },
     production: {
       environment: 'production',

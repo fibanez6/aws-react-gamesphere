@@ -8,7 +8,10 @@
     "dev-debug": "vite --debug",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "seed": "node scripts/seed-data.js",
+    "seed:clear": "node scripts/seed-data.js --clear",
+    "seed:graphql": "node scripts/seed-data.js --mode=graphql"
   },
   "dependencies": {
     "@aws-amplify/api": "^6.0.0",
@@ -22,11 +25,15 @@
     "recharts": "^2.10.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.985.0",
+    "@aws-sdk/credential-provider-ini": "^3.972.5",
+    "@aws-sdk/lib-dynamodb": "^3.985.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "aws-amplify": "^6.16.2",
+    "dotenv": "^17.2.4",
     "eslint": "^8.55.0",
     "eslint-plugin-react": "^7.33.0",
     "eslint-plugin-react-hooks": "^4.6.0",

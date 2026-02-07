@@ -8,7 +8,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
-AWS_PROFILE=mfa-session
 PROJECT_NAME="gamesphere"
 ENVIRONMENT="${1:-dev}"
 REGION="${2:-ap-southeast-2}"
