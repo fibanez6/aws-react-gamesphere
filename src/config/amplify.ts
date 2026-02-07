@@ -1,6 +1,8 @@
 // AWS Amplify Configuration
 // Replace these values with your actual AWS AppSync configuration
 
+import envConfig, { debugLog } from './environment';
+
 const amplifyConfig = {
   Auth: {
     Cognito: {
@@ -17,5 +19,14 @@ const amplifyConfig = {
     },
   },
 };
+
+// Log configuration on startup (non-sensitive info only)
+debugLog('Amplify configuration loaded', {
+  environment: envConfig.environment,
+  useMockAuth: envConfig.useMockAuth,
+  region: amplifyConfig.API.GraphQL.region,
+  hasUserPoolId: !!import.meta.env.VITE_COGNITO_USER_POOL_ID,
+  hasEndpoint: !!import.meta.env.VITE_APPSYNC_ENDPOINT,
+});
 
 export default amplifyConfig;

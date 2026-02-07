@@ -2,7 +2,7 @@
 
 A modern, feature-rich social gaming dashboard built with React, TypeScript, Tailwind CSS, and AWS AppSync GraphQL.
 
-![GameSphere Dashboard](https://via.placeholder.com/1200x630?text=GameSphere+Dashboard)
+![GameSphere Dashboard](./docs/images/GameSphere_Dashboard.png)
 
 ## 🎮 Features
 
@@ -54,7 +54,7 @@ A modern, feature-rich social gaming dashboard built with React, TypeScript, Tai
    ```
 
 5. **Open your browser**
-   Navigate to `http://localhost:5173`
+   Navigate to `http://localhost:3000`
 
 ### Development Mode
 The app runs with mock data by default, so you can explore all features without AWS configuration.
@@ -198,10 +198,3 @@ amplify publish
 
 MIT License - feel free to use this project for your own purposes.
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
----
-
-Built with ❤️ for gamers everywhere.

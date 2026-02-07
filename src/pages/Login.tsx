@@ -5,19 +5,34 @@ import { useAuth } from '../context/AuthContext';
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, signUp, isLoading } = useAuth();
+  const { 
+    login, 
+    signUp, 
+    completeNewPassword, 
+    confirmSignUp, 
+    resendConfirmationCode,
+    isLoading, 
+    needsNewPassword,
+    needsConfirmation,
+    pendingEmail,
+  } = useAuth();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [confirmationCode, setConfirmationCode] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setMessage('');
 
     try {
       if (isSignUp) {
@@ -26,10 +41,228 @@ export default function Login() {
         await login(email, password);
       }
       navigate(from, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+    } catch (err: any) {
+      // Don't show error for flows that switch UI
+      if (err.code !== 'NewPasswordRequiredException' && 
+          err.message !== 'NEW_PASSWORD_REQUIRED' &&
+          !err.message?.includes('confirm your email')) {
+        setError(err instanceof Error ? err.message : 'Authentication failed');
+      }
     }
   };
+
+  const handleConfirmationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+
+    try {
+      await confirmSignUp(confirmationCode);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Confirmation failed');
+    }
+  };
+
+  const handleResendCode = async () => {
+    setError('');
+    setMessage('');
+    try {
+      await resendConfirmationCode();
+      setMessage('Confirmation code resent! Check your email.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend code');
+    }
+  };
+
+  const handleNewPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      await completeNewPassword(newPassword);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to set new password');
+    }
+  };
+
+  // Show new password form if required
+  if (needsNewPassword) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary mb-4">
+              <span className="text-white font-bold text-2xl">G</span>
+            </div>
+            <h1 className="text-3xl font-bold text-gradient">GameSphere</h1>
+            <p className="text-dark-400 mt-2">Set Your New Password</p>
+          </div>
+
+          {/* New Password Form Card */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-2 text-center">Password Reset Required</h2>
+            <p className="text-dark-400 text-sm text-center mb-6">
+              Please set a new password to continue
+            </p>
+
+            <form onSubmit={handleNewPasswordSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="input"
+                  required
+                  minLength={8}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirmNewPassword" className="block text-sm font-medium mb-2">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  id="confirmNewPassword"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="input"
+                  required
+                  minLength={8}
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="btn-primary w-full py-3"
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner className="w-5 h-5" />
+                    Setting Password...
+                  </>
+                ) : (
+                  'Set New Password'
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show confirmation code form if required
+  if (needsConfirmation) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary mb-4">
+              <span className="text-white font-bold text-2xl">G</span>
+            </div>
+            <h1 className="text-3xl font-bold text-gradient">GameSphere</h1>
+            <p className="text-dark-400 mt-2">Verify Your Email</p>
+          </div>
+
+          {/* Confirmation Code Form Card */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-2 text-center">Check Your Email</h2>
+            <p className="text-dark-400 text-sm text-center mb-6">
+              We sent a verification code to<br />
+              <span className="text-white font-medium">{pendingEmail}</span>
+            </p>
+
+            <form onSubmit={handleConfirmationSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="confirmationCode" className="block text-sm font-medium mb-2">
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  id="confirmationCode"
+                  value={confirmationCode}
+                  onChange={(e) => setConfirmationCode(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  className="input text-center text-lg tracking-widest"
+                  required
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {message && (
+                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm">
+                  {message}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="btn-primary w-full py-3"
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner className="w-5 h-5" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify Email'
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-dark-400 text-sm">
+                Didn't receive the code?{' '}
+                <button
+                  onClick={handleResendCode}
+                  disabled={isLoading}
+                  className="text-primary-400 hover:text-primary-300 font-medium"
+                >
+                  Resend Code
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4">

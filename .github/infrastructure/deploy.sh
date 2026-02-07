@@ -8,6 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
+AWS_PROFILE=mfa-session
 PROJECT_NAME="gamesphere"
 ENVIRONMENT="${1:-dev}"
 REGION="${2:-ap-southeast-2}"
@@ -113,6 +114,12 @@ USER_POOL_CLIENT_ID=$(aws cloudformation describe-stacks \
     --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" \
     --output text)
 
+IDENTITY_POOL_ID=$(aws cloudformation describe-stacks \
+    --stack-name "${STACK_NAME}-cognito" \
+    --region "${REGION}" \
+    --query "Stacks[0].Outputs[?OutputKey=='IdentityPoolId'].OutputValue" \
+    --output text)
+
 echo -e "User Pool ID: ${YELLOW}${USER_POOL_ID}${NC}"
 echo -e "User Pool Client ID: ${YELLOW}${USER_POOL_CLIENT_ID}${NC}"
 
@@ -216,8 +223,9 @@ echo ""
 echo -e "${YELLOW}Configuration for .env file:${NC}"
 echo ""
 echo "VITE_AWS_REGION=${REGION}"
-echo "VITE_AWS_USER_POOL_ID=${USER_POOL_ID}"
-echo "VITE_AWS_USER_POOL_CLIENT_ID=${USER_POOL_CLIENT_ID}"
+echo "VITE_COGNITO_USER_POOL_ID=${USER_POOL_ID}"
+echo "VITE_COGNITO_USER_POOL_CLIENT_ID=${USER_POOL_CLIENT_ID}"
+echo "VITE_COGNITO_IDENTITY_POOL_ID=${IDENTITY_POOL_ID}"
 echo "VITE_AWS_APPSYNC_ENDPOINT=${GRAPHQL_ENDPOINT}"
 echo "VITE_AWS_APPSYNC_API_KEY=${GRAPHQL_API_KEY}"
 echo ""

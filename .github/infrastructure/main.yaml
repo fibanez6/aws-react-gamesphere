@@ -109,6 +109,12 @@ Outputs:
     Export:
       Name: !Sub '${ProjectName}-${Environment}-main-UserPoolClientId'
 
+  IdentityPoolId:
+    Description: Cognito Identity Pool ID
+    Value: !GetAtt CognitoStack.Outputs.IdentityPoolId
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-main-IdentityPoolId'
+
   # AppSync Outputs
   GraphQLApiEndpoint:
     Description: AppSync GraphQL API Endpoint

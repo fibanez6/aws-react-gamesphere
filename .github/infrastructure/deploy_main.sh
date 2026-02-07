@@ -8,6 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
+AWS_PROFILE=mfa-session
 PROJECT_NAME="fi-gamesphere"
 ENVIRONMENT="${1:-dev}"
 REGION="${2:-ap-southeast-2}"
@@ -48,9 +49,9 @@ echo ""
 CFN_BUCKET="${PROJECT_NAME}-cfn-templates"
 echo -e "${YELLOW}Creating/checking S3 bucket for templates...${NC}"
 
-if ! aws s3api head-bucket --bucket "${CFN_BUCKET}" 2>/dev/null; then
-    aws s3 mb "s3://${CFN_BUCKET}" --region "${REGION}"
-    echo -e "${GREEN}Created bucket: ${CFN_BUCKET}${NC}"
+if ! aws s3api head-bucket --bucket "${CFN_BUCKET}" --region "${REGION}" 2>/dev/null; then
+    aws s3 mb "s3://${CFN_BUCKET}" --region "${REGION}" 2>/dev/null || true
+    echo -e "${GREEN}Bucket ready: ${CFN_BUCKET}${NC}"
 else
     echo -e "${GREEN}Bucket exists: ${CFN_BUCKET}${NC}"
 fi
@@ -112,11 +113,12 @@ get_main_output() {
 }
 
 
-USER_POOL_ID=$(get_main_output "UserPoolId")
-USER_POOL_CLIENT_ID=$(get_main_output "UserPoolClientId")
+COGNITO_USER_POOL_ID=$(get_main_output "UserPoolId")
+COGNITO_USER_POOL_CLIENT_ID=$(get_main_output "UserPoolClientId")
+COGNITO_IDENTITY_POOL_ID=$(get_main_output "IdentityPoolId")
 GRAPHQL_ENDPOINT=$(get_main_output "GraphQLApiEndpoint")
 GRAPHQL_API_KEY=$(get_main_output "GraphQLApiId")
-S3_BUCKET=$(get_main_output "WebsiteBucketName")
+S3_BUCKET=$(get_main_output "S3BucketName")
 CLOUDFRONT_ID=$(get_main_output "CloudFrontDistributionId")
 WEBSITE_URL=$(get_main_output "WebsiteURL")
 
@@ -129,8 +131,9 @@ echo ""
 echo -e "${YELLOW}Configuration for .env file:${NC}"
 echo ""
 echo "VITE_AWS_REGION=${REGION}"
-echo "VITE_AWS_USER_POOL_ID=${USER_POOL_ID}"
-echo "VITE_AWS_USER_POOL_CLIENT_ID=${USER_POOL_CLIENT_ID}"
+echo "VITE_COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}"
+echo "VITE_COGNITO_USER_POOL_CLIENT_ID=${COGNITO_USER_POOL_CLIENT_ID}"
+echo "VITE_COGNITO_IDENTITY_POOL_ID=${COGNITO_IDENTITY_POOL_ID}"
 echo "VITE_AWS_APPSYNC_ENDPOINT=${GRAPHQL_ENDPOINT}"
 echo "VITE_AWS_APPSYNC_API_KEY=${GRAPHQL_API_KEY}"
 echo ""

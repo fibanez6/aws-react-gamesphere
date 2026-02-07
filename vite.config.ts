@@ -9,6 +9,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    // Fix for amazon-cognito-identity-js which expects Node.js globals
+    global: 'globalThis',
+  },
   server: {
     port: 3000,
   },
