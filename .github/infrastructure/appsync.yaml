@@ -284,6 +284,19 @@ Resources:
           updatedAt: AWSDateTime!
         }
 
+        type Game {
+          id: ID!
+          name: String!
+          genre: String!
+          coverImage: String!
+          rating: Float!
+          activePlayers: Int!
+          platforms: [String!]!
+          releaseDate: AWSDate
+          developer: String
+          publisher: String
+        }
+
         type PlayerStats {
           userId: User!
           gameId: Game!
@@ -305,19 +318,6 @@ Resources:
           gameStats: [GameStats!]!
           achievements: [Achievement!]!
           recentActivity: [Activity!]!
-        }
-
-        type Game {
-          id: ID!
-          name: String!
-          genre: String!
-          coverImage: String!
-          rating: Float!
-          activePlayers: Int!
-          platforms: [String!]!
-          releaseDate: AWSDate
-          developer: String
-          publisher: String
         }
 
         type GameDetails {
