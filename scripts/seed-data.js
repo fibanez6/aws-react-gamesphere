@@ -26,11 +26,11 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { fromIni } from '@aws-sdk/credential-provider-ini';
 import {
-    BatchWriteCommand,
-    DeleteCommand,
-    DynamoDBDocumentClient,
-    PutCommand,
-    ScanCommand
+  BatchWriteCommand,
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  PutCommand,
+  ScanCommand
 } from '@aws-sdk/lib-dynamodb';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
@@ -72,7 +72,7 @@ const config = {
   region: process.env.AWS_REGION || process.env.VITE_AWS_REGION || 'ap-southeast-2',
   tablePrefix: `${process.env.DYNAMODB_TABLE_PREFIX || 'fi-gamesphere'}-dev`,
   mode: 'dynamodb',
-  clear: true,
+  clear: false,
   tables: null, // null = all tables
 };
 
@@ -92,6 +92,20 @@ process.argv.slice(2).forEach(arg => {
 // ============================================
 
 const users = [
+    {
+        id: '39de3408-8001-7058-aa39-139fc18e378b',
+        username: 'testuser',
+        email: 'shadow@gamesphere.io',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',
+        level: 42,
+        rank: 'DIAMOND',
+        xp: 1111,
+        status: 'ONLINE',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: new Date().toISOString(),
+        GSI1PK: 'USERS',
+        GSI1SK: 'LEVEL#42',
+    },
     {
         id: 'user_001',
         username: 'ShadowBlade',
@@ -295,22 +309,21 @@ const games = [
 
 const playerStats = [];
 // Generate random player stats for all users
-users.slice(1).forEach(user => {
+users.forEach(user => {
     const totalMatches = Math.floor(Math.random() * 3000) + 500;
     const totalWins = Math.floor(totalMatches * (0.3 + Math.random() * 0.4));
     const totalHoursPlayed = Math.floor(Math.random() * 2000) + 200;
-    const gameId = games[Math.floor(Math.random() * games.length)].id;
     
     playerStats.push({
         userId: user.id,
-        gameId,
+        gamesOwned: Math.floor(Math.random() * games.length) + 1,
         achievementsUnlocked: Math.floor(Math.random() * 400) + 50,
         totalHoursPlayed,
         totalAchievements: 500,
         winRate: parseFloat((totalWins / totalMatches).toFixed(2)),
         totalWins,
         totalMatches,
-        favoriteGame: games.find(game => game.id === gameId).name,
+        favoriteGame: games[Math.floor(Math.random() * games.length)].name,
         weeklyPlaytime: Array.from({ length: 7 }, () => parseFloat((Math.random() * 10).toFixed(1))),
         monthlyPlaytime: Array.from({ length: 12 }, () => Math.floor(Math.random() * 80) + 20),
         currentStreak: Math.floor(Math.random() * 30) + 1,
@@ -510,8 +523,8 @@ async function seedDynamoDB() {
 async function seedGraphQL() {
   console.log('\n🚀 Starting GraphQL seed...');
   
-  const endpoint = process.env.APPSYNC_ENDPOINT || process.env.VITE_AWS_APPSYNC_ENDPOINT;
-  const apiKey = process.env.APPSYNC_API_KEY || process.env.VITE_AWS_APPSYNC_API_KEY;
+  const endpoint = process.env.APPSYNC_ENDPOINT || process.env.VITE_APPSYNC_ENDPOINT;
+  const apiKey = process.env.APPSYNC_API_KEY || process.env.VITE_APPSYNC_API_KEY;
 
   if (!endpoint || !apiKey) {
     console.error('❌ Error: APPSYNC_ENDPOINT and APPSYNC_API_KEY are required for GraphQL mode');

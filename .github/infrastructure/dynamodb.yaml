@@ -110,13 +110,9 @@ Resources:
       AttributeDefinitions:
         - AttributeName: userId
           AttributeType: S
-        - AttributeName: gameId
-          AttributeType: S
       KeySchema:
         - AttributeName: userId
           KeyType: HASH
-        - AttributeName: gameId
-          KeyType: RANGE
       SSESpecification:
         SSEEnabled: true
       Tags:

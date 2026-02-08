@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import userService from '../services/userService';
 import { Activity, PlayerStats } from '../types';
+import { debugLog } from '@/config/environment';
 
 interface UseUserStatsResult {
   stats: PlayerStats | null;
@@ -18,6 +19,7 @@ export function useUserStats(userId: string): UseUserStatsResult {
     setIsLoading(true);
     setError(null);
     try {
+      debugLog('UseUserStats: Fetching user stats for userId:', userId);
       const result = await userService.getUserStats(userId);
       setStats(result);
     } catch (err) {

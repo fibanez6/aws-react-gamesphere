@@ -1,10 +1,45 @@
 // GraphQL Queries
+export const getCurrentUser = /* GraphQL */ `
+  query GetCurrentUser($userId: ID!) {
+    getUser(userId: $userId) {
+      id
+      username
+      email
+      avatar
+      level
+      rank
+      xp
+      xpToNextLevel
+      isOnline
+      isPublicProfile
+      createdAt
+      lastActiveAt
+    }
+  }
+`;
+
+export const getGame = /* GraphQL */ `
+  query GetGame($gameId: ID!) {
+    getGame(gameId: $gameId) {
+      id
+      name
+      coverImage
+      genre
+      platform
+      activePlayers
+      avgPlaytime
+      rating
+      description
+      releaseDate
+    }
+  }
+`;
 
 export const getUserStats = /* GraphQL */ `
   query GetPlayerStats($userId: ID!) {
     getPlayerStats(userId: $userId) {
       userId
-      gameId
+      gamesOwned
       achievementsUnlocked
       totalHoursPlayed
       totalAchievements

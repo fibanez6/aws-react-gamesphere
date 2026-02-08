@@ -299,7 +299,7 @@ Resources:
 
         type PlayerStats {
           userId: ID!
-          gameId: ID!
+          gamesOwned: Int!
           achievementsUnlocked: Int!
           totalHoursPlayed: Float!
           totalAchievements: Int!
@@ -712,7 +712,7 @@ Resources:
         export function request(ctx) {
           return {
             operation: 'GetItem',
-            key: util.dynamodb.toMapValues({ userId: ctx.args.userId, gameId: ctx.args.gameId }),
+            key: util.dynamodb.toMapValues({ userId: ctx.args.userId }),
           };
         }
         
@@ -721,7 +721,7 @@ Resources:
           const r = ctx.result;
           return {
             userId: r.userId ?? ctx.args.userId,
-            gameId: r.gameId ?? ctx.args.gameId,
+            gamesOwned: r.gamesOwned ?? 0,
             achievementsUnlocked: r.achievementsUnlocked ?? 0,
             totalHoursPlayed: r.totalHoursPlayed ?? 0,
             totalAchievements: r.totalAchievements ?? 0,

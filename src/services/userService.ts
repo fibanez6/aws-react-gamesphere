@@ -15,6 +15,7 @@ import {
   mockPlayerStats,
 } from '../data/mockData';
 import {
+  getCurrentUser,
   getFriends,
   getGameDetails,
   getLeaderboard,
@@ -36,6 +37,7 @@ import {
   PlayerStats,
   User,
 } from '../types';
+import { authService } from './authService';
 
 // Types for paginated responses
 interface PaginatedResponse<T> {
@@ -238,10 +240,20 @@ const mockUserService = {
 // ============================================
 const graphqlUserService = {
   async getCurrentUser(): Promise<User | null> {
-    debugLog('GraphQL: Getting current user');
-    // Current user comes from auth context, not GraphQL
-    // This would typically be fetched after authentication
-    return null;
+    const { username, id } = await authService.getCurrentUser() || {};
+    debugLog('GraphQL: Getting current user', { username, userId: id });
+    try {
+      const client = getClient();
+      
+      const result = await client.graphql({
+        query: getCurrentUser,
+        variables: { userId: id },
+      });
+      return (result as any).data?.getCurrentUser || null;
+    } catch (error) {
+      debugError('GraphQL: Error getting current user', error);
+      throw error;
+    }
   },
 
   async getUserStats(userId: string): Promise<PlayerStats | null> {
@@ -252,7 +264,9 @@ const graphqlUserService = {
         query: getUserStats,
         variables: { userId },
       });
-      return (result as any).data?.getUserStats || null;
+      const data = (result as any).data?.getPlayerStats;
+      debugLog('GraphQL: User stats result', { data });
+      return data || null;
     } catch (error) {
       debugError('GraphQL: Error getting user stats', error);
       throw error;
