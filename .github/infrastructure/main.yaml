@@ -20,6 +20,17 @@ Parameters:
     Type: String
     Description: S3 bucket name where nested stack templates are stored
 
+  HostingEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: Enable or disable the S3/CloudFront hosting stack
+
+Conditions:
+  DeployHostingStack: !Equals [!Ref HostingEnabled, 'true']
+
 Resources:
   # Cognito Stack
   CognitoStack:
@@ -63,6 +74,8 @@ Resources:
         UserPoolId: !GetAtt CognitoStack.Outputs.UserPoolId
         UsersTableName: !GetAtt DynamoDBStack.Outputs.UsersTableName
         UsersTableArn: !GetAtt DynamoDBStack.Outputs.UsersTableArn
+        PlayerStatsTableName: !GetAtt DynamoDBStack.Outputs.PlayerStatsTableName
+        PlayerStatsTableArn: !GetAtt DynamoDBStack.Outputs.PlayerStatsTableArn
         GamesTableName: !GetAtt DynamoDBStack.Outputs.GamesTableName
         GamesTableArn: !GetAtt DynamoDBStack.Outputs.GamesTableArn
         FriendsTableName: !GetAtt DynamoDBStack.Outputs.FriendsTableName
@@ -84,6 +97,7 @@ Resources:
   # S3 & CloudFront Stack for Frontend Hosting
   HostingStack:
     Type: AWS::CloudFormation::Stack
+    Condition: DeployHostingStack
     Properties:
       TemplateURL: !Sub 'https://s3.amazonaws.com/${TemplatesBucketName}/templates/hosting.yaml'
       Parameters:
@@ -128,20 +142,23 @@ Outputs:
     Export:
       Name: !Sub '${ProjectName}-${Environment}-main-GraphQLApiId'
 
-  # Hosting Outputs
+  # Hosting Outputs (conditional)
   WebsiteURL:
+    Condition: DeployHostingStack
     Description: CloudFront Distribution URL
     Value: !GetAtt HostingStack.Outputs.WebsiteURL
     Export:
       Name: !Sub '${ProjectName}-${Environment}-main-WebsiteURL'
 
   S3BucketName:
+    Condition: DeployHostingStack
     Description: S3 Bucket for frontend assets
     Value: !GetAtt HostingStack.Outputs.S3BucketName
     Export:
       Name: !Sub '${ProjectName}-${Environment}-main-S3BucketName'
 
   CloudFrontDistributionId:
+    Condition: DeployHostingStack
     Description: CloudFront Distribution ID
     Value: !GetAtt HostingStack.Outputs.CloudFrontDistributionId
     Export:

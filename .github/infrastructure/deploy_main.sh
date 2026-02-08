@@ -13,6 +13,8 @@ ENVIRONMENT="${1:-dev}"
 REGION="${2:-ap-southeast-2}"
 STACK_NAME="${PROJECT_NAME}-${ENVIRONMENT}"
 
+HOSTING_ENABLED=false
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -99,7 +101,7 @@ deploy_stack() {
 deploy_stack \
     "${STACK_NAME}-main" \
     "${SCRIPT_DIR}/main.yaml" \
-    "Environment=${ENVIRONMENT} ProjectName=${PROJECT_NAME} TemplatesBucketName=${CFN_BUCKET}"
+    "Environment=${ENVIRONMENT} ProjectName=${PROJECT_NAME} TemplatesBucketName=${CFN_BUCKET} HostingEnabled=${HOSTING_ENABLED}"
 
 # Get Main outputs
 get_main_output() {
@@ -117,9 +119,12 @@ COGNITO_USER_POOL_CLIENT_ID=$(get_main_output "UserPoolClientId")
 COGNITO_IDENTITY_POOL_ID=$(get_main_output "IdentityPoolId")
 GRAPHQL_ENDPOINT=$(get_main_output "GraphQLApiEndpoint")
 GRAPHQL_API_KEY=$(get_main_output "GraphQLApiId")
-S3_BUCKET=$(get_main_output "S3BucketName")
-CLOUDFRONT_ID=$(get_main_output "CloudFrontDistributionId")
-WEBSITE_URL=$(get_main_output "WebsiteURL")
+
+if [ "$HOSTING_ENABLED" = true ] ; then
+    S3_BUCKET=$(get_main_output "S3BucketName")
+    CLOUDFRONT_ID=$(get_main_output "CloudFrontDistributionId")
+    WEBSITE_URL=$(get_main_output "WebsiteURL")
+fi
 
 # Print summary
 echo ""
@@ -136,13 +141,15 @@ echo "VITE_COGNITO_IDENTITY_POOL_ID=${COGNITO_IDENTITY_POOL_ID}"
 echo "VITE_AWS_APPSYNC_ENDPOINT=${GRAPHQL_ENDPOINT}"
 echo "VITE_AWS_APPSYNC_API_KEY=${GRAPHQL_API_KEY}"
 echo ""
-echo -e "${YELLOW}Hosting Details:${NC}"
-echo "S3 Bucket: ${S3_BUCKET}"
-echo "CloudFront Distribution: ${CLOUDFRONT_ID}"
-echo "Website URL: ${WEBSITE_URL}"
-echo ""
-echo -e "${YELLOW}To deploy frontend:${NC}"
-echo "npm run build"
-echo "aws s3 sync dist/ s3://${S3_BUCKET}/ --delete"
-echo "aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_ID} --paths '/*'"
+if [ "$HOSTING_ENABLED" = true ] ; then
+    echo -e "${YELLOW}Hosting Details:${NC}"
+    echo "S3 Bucket: ${S3_BUCKET}"
+    echo "CloudFront Distribution: ${CLOUDFRONT_ID}"
+    echo "Website URL: ${WEBSITE_URL}"
+    echo ""
+    echo -e "${YELLOW}To deploy frontend:${NC}"
+    echo "npm run build"
+    echo "aws s3 sync dist/ s3://${S3_BUCKET}/ --delete"
+    echo "aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_ID} --paths '/*'"
+fi
 echo ""

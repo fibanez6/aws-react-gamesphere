@@ -309,24 +309,30 @@ const games = [
   },
 ];
 
-const playerStats = [
-  {
-    id: 'stats_user_001',
-    PK: 'USER#user_001',
-    SK: 'STATS',
-    userId: 'user_001',
-    totalHoursPlayed: 1247,
-    gamesOwned: 89,
-    achievementsUnlocked: 342,
-    totalAchievements: 500,
-    winRate: 0.67,
-    totalWins: 1580,
-    totalMatches: 2358,
-    favoriteGame: 'Elden Ring',
-    weeklyPlaytime: [4.5, 3.2, 5.1, 2.8, 6.3, 8.2, 7.1],
-    monthlyPlaytime: [45, 38, 52, 48, 55, 62, 58, 49, 53, 61, 57, 63],
-  },
-];
+const playerStats = [];
+// Generate random player stats for all users
+users.slice(1).forEach(user => {
+    const totalMatches = Math.floor(Math.random() * 3000) + 500;
+    const totalWins = Math.floor(totalMatches * (0.3 + Math.random() * 0.4));
+    const totalHoursPlayed = Math.floor(Math.random() * 2000) + 200;
+    const gameId = games[Math.floor(Math.random() * games.length)].id;
+    
+    playerStats.push({
+        userId: user.id,
+        gameId,
+        achievementsUnlocked: Math.floor(Math.random() * 400) + 50,
+        totalHoursPlayed,
+        totalAchievements: 500,
+        winRate: parseFloat((totalWins / totalMatches).toFixed(2)),
+        totalWins,
+        totalMatches,
+        favoriteGame: games.find(game => game.id === gameId).name,
+        weeklyPlaytime: Array.from({ length: 7 }, () => parseFloat((Math.random() * 10).toFixed(1))),
+        monthlyPlaytime: Array.from({ length: 12 }, () => Math.floor(Math.random() * 80) + 20),
+        currentStreak: Math.floor(Math.random() * 30) + 1,
+        longestStreak: Math.floor(Math.random() * 100) + 30,
+    });
+});
 
 const friendships = [
   { id: 'friendship_001', PK: 'USER#user_001', SK: 'FRIEND#friend_001', userId: 'user_001', friendId: 'friend_001', status: 'accepted', createdAt: '2023-02-20T10:00:00Z' },
@@ -384,12 +390,12 @@ const tableData = {
   users: { tableName: 'users', data: users, keyField: 'id' },
   games: { tableName: 'games', data: games, keyField: 'id' },
   playerStats: { tableName: 'player-stats', data: playerStats, keyField: 'id' },
-  friendships: { tableName: 'friends', data: friendships, keyField: 'id' },
-  gameStats: { tableName: 'GameStats', data: gameStats, keyField: 'id' },
-  achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
-  activities: { tableName: 'activities', data: activities, keyField: 'id' },
-  liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
-  leaderboard: { tableName: 'leaderboard', data: leaderboard, keyField: 'id' },
+//   friendships: { tableName: 'friends', data: friendships, keyField: 'id' },
+//   gameStats: { tableName: 'gameStats', data: gameStats, keyField: 'id' },
+//   achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
+//   activities: { tableName: 'activities', data: activities, keyField: 'id' },
+//   liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
+//   leaderboard: { tableName: 'leaderboard', data: leaderboard, keyField: 'id' },
 };
 
 // ============================================

@@ -4,16 +4,17 @@ export const getUserStats = /* GraphQL */ `
   query GetUserStats($userId: ID!) {
     getUserStats(userId: $userId) {
       userId
-      totalHoursPlayed
-      gamesOwned
+      gameId
       achievementsUnlocked
+      totalHoursPlayed
       totalAchievements
-      winRate
       totalWins
       totalMatches
-      favoriteGame
+      winRate
       weeklyPlaytime
       monthlyPlaytime
+      currentStreak
+      longestStreak
     }
   }
 `;
@@ -64,16 +65,17 @@ export const getPlayerProfile = /* GraphQL */ `
       }
       stats {
         userId
-        totalHoursPlayed
-        gamesOwned
+        gameId
         achievementsUnlocked
+        totalHoursPlayed
         totalAchievements
-        winRate
         totalWins
         totalMatches
-        favoriteGame
+        winRate
         weeklyPlaytime
         monthlyPlaytime
+        currentStreak
+        longestStreak
       }
       gameStats {
         gameId
