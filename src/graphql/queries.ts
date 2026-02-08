@@ -1,8 +1,8 @@
 // GraphQL Queries
 
 export const getUserStats = /* GraphQL */ `
-  query GetUserStats($userId: ID!) {
-    getUserStats(userId: $userId) {
+  query GetPlayerStats($userId: ID!) {
+    getPlayerStats(userId: $userId) {
       userId
       gameId
       achievementsUnlocked

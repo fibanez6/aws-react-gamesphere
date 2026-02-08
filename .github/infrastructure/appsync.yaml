@@ -207,7 +207,7 @@ Resources:
           # getGameDetails(id: ID!): GameDetails
 
           # Player Stats Queries
-          getPlayerStats(userId: ID!): PlayerStats
+          getPlayerStats(userId: ID!, gameId: ID!): PlayerStats
           # getPlayerProfile(userId: ID!): PlayerProfile
           
           # Friends Queries
@@ -298,8 +298,8 @@ Resources:
         }
 
         type PlayerStats {
-          userId: User!
-          gameId: Game!
+          userId: ID!
+          gameId: ID!
           achievementsUnlocked: Int!
           totalHoursPlayed: Float!
           totalAchievements: Int!
@@ -685,19 +685,14 @@ Resources:
         import { util } from '@aws-appsync/utils';
         
         export function request(ctx) {
-          const { limit = 20, nextToken } = ctx.args;
           return {
-            operation: 'Scan',
-            limit,
-            nextToken,
+            operation: 'GetItem',
+            key: util.dynamodb.toMapValues({ id: ctx.args.id }),
           };
         }
         
         export function response(ctx) {
-          return {
-            items: ctx.result.items,
-            nextToken: ctx.result.nextToken,
-          };
+          return ctx.result;
         }
 
   GetPlayerStatsResolver:
@@ -717,26 +712,26 @@ Resources:
         export function request(ctx) {
           return {
             operation: 'GetItem',
-            key: util.dynamodb.toMapValues({ userId: ctx.args.userId }),
+            key: util.dynamodb.toMapValues({ userId: ctx.args.userId, gameId: ctx.args.gameId }),
           };
         }
         
         export function response(ctx) {
           if (!ctx.result) return null;
+          const r = ctx.result;
           return {
-            userId: ctx.result.userId,
-            gameId: ctx.result.gameId,
-            achievementsUnlocked: ctx.result.achievementsUnlocked || 0,
-            totalHoursPlayed: ctx.result.totalHoursPlayed || 0,
-            totalAchievements: ctx.result.totalAchievements || 0,
-            totalWins: ctx.result.totalWins || 0,
-            totalMatches: ctx.result.totalMatches || 0,
-            winRate: ctx.result.winRate || 0,
-            favoriteGame: ctx.result.favoriteGame || null,
-            weeklyPlaytime: ctx.result.weeklyPlaytime || [0,0,0,0,0,0,0],
-            monthlyPlaytime: ctx.result.monthlyPlaytime || [0,0,0,0,0,0,0,0,0,0,0,0],
-            currentStreak: ctx.result.currentStreak || 0,
-            longestStreak: ctx.result.longestStreak || 0,
+            userId: r.userId ?? ctx.args.userId,
+            gameId: r.gameId ?? ctx.args.gameId,
+            achievementsUnlocked: r.achievementsUnlocked ?? 0,
+            totalHoursPlayed: r.totalHoursPlayed ?? 0,
+            totalAchievements: r.totalAchievements ?? 0,
+            totalWins: r.totalWins ?? 0,
+            totalMatches: r.totalMatches ?? 0,
+            winRate: r.winRate ?? 0,
+            weeklyPlaytime: r.weeklyPlaytime ?? [0,0,0,0,0,0,0],
+            monthlyPlaytime: r.monthlyPlaytime ?? [0,0,0,0,0,0,0,0,0,0,0,0],
+            currentStreak: r.currentStreak ?? 0,
+            longestStreak: r.longestStreak ?? 0,
           };
         }
 
@@ -1137,7 +1132,7 @@ Resources:
             operation: 'PutItem',
             key: util.dynamodb.toMapValues({ id }),
             attributeValues: util.dynamodb.toMapValues({
-              oderId: ctx.identity.sub,
+              userId: ctx.identity.sub,
               gameId: ctx.args.gameId,
               startTime: now,
               isActive: 'true',
