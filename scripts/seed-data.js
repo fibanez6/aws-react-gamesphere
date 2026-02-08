@@ -8,6 +8,7 @@
  * 
  * Usage:
  *   node scripts/seed-data.js [--mode=dynamodb|graphql] [--clear]
+ *   AWS_PROFILE=bjss-cli-role npm run seed
  * 
  * Options:
  *   --mode=dynamodb   Use DynamoDB directly (default)
@@ -23,6 +24,12 @@
  *   APPSYNC_API_KEY (required for graphql mode)
  */
 
+import {
+  AdminCreateUserCommand,
+  AdminSetUserPasswordCommand,
+  CognitoIdentityProviderClient,
+  UsernameExistsException
+} from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { fromIni } from '@aws-sdk/credential-provider-ini';
 import {
@@ -71,6 +78,7 @@ const profileHasSessionToken = (profile) => {
 const config = {
   region: process.env.AWS_REGION || process.env.VITE_AWS_REGION || 'ap-southeast-2',
   tablePrefix: `${process.env.DYNAMODB_TABLE_PREFIX || 'fi-gamesphere'}-dev`,
+  userPoolId: process.env.COGNITO_USER_POOL_ID || process.env.VITE_COGNITO_USER_POOL_ID,
   mode: 'dynamodb',
   clear: false,
   tables: null, // null = all tables
@@ -90,10 +98,12 @@ process.argv.slice(2).forEach(arg => {
 // ============================================
 // Demo Data (matching mockData.ts)
 // ============================================
+let cognitoUserId = '295e4428-c051-703e-e8f1-959ef06bca21'
+
 
 const users = [
     {
-        id: '39de3408-8001-7058-aa39-139fc18e378b',
+        id: '694e2468-c051-702a-d9a9-ce56e2d4d6a7',
         username: 'testuser',
         email: 'shadow@gamesphere.io',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',
@@ -332,12 +342,30 @@ users.forEach(user => {
 });
 
 const friendships = [
-  { id: 'friendship_001', PK: 'USER#user_001', SK: 'FRIEND#friend_001', userId: 'user_001', friendId: 'friend_001', status: 'accepted', createdAt: '2023-02-20T10:00:00Z' },
-  { id: 'friendship_002', PK: 'USER#user_001', SK: 'FRIEND#friend_002', userId: 'user_001', friendId: 'friend_002', status: 'accepted', createdAt: '2023-01-15T10:00:00Z' },
-  { id: 'friendship_003', PK: 'USER#user_001', SK: 'FRIEND#friend_003', userId: 'user_001', friendId: 'friend_003', status: 'accepted', createdAt: '2023-03-20T10:00:00Z' },
-  { id: 'friendship_004', PK: 'USER#user_001', SK: 'FRIEND#friend_004', userId: 'user_001', friendId: 'friend_004', status: 'accepted', createdAt: '2023-02-05T10:00:00Z' },
-  { id: 'friendship_005', PK: 'USER#user_001', SK: 'FRIEND#friend_005', userId: 'user_001', friendId: 'friend_005', status: 'accepted', createdAt: '2023-04-10T10:00:00Z' },
-  { id: 'friendship_006', PK: 'USER#user_001', SK: 'FRIEND#friend_006', userId: 'user_001', friendId: 'friend_006', status: 'accepted', createdAt: '2022-12-15T10:00:00Z' },
+  // ShadowBlade's friends
+  { userId: 'user_001', friendId: 'friend_001', status: 'accepted', createdAt: '2023-02-20T10:00:00Z', updatedAt: '2023-02-20T10:00:00Z' },
+  { userId: 'user_001', friendId: 'friend_002', status: 'accepted', createdAt: '2023-01-15T10:00:00Z', updatedAt: '2023-01-15T10:00:00Z' },
+  { userId: 'user_001', friendId: 'friend_003', status: 'accepted', createdAt: '2023-03-20T10:00:00Z', updatedAt: '2023-03-20T10:00:00Z' },
+  { userId: 'user_001', friendId: 'friend_004', status: 'accepted', createdAt: '2023-02-05T10:00:00Z', updatedAt: '2023-02-05T10:00:00Z' },
+  { userId: 'user_001', friendId: 'friend_005', status: 'accepted', createdAt: '2023-04-10T10:00:00Z', updatedAt: '2023-04-10T10:00:00Z' },
+  { userId: 'user_001', friendId: 'friend_006', status: 'accepted', createdAt: '2022-12-15T10:00:00Z', updatedAt: '2022-12-15T10:00:00Z' },
+  // Reverse friendships (bidirectional)
+  { userId: 'friend_001', friendId: 'user_001', status: 'accepted', createdAt: '2023-02-20T10:00:00Z', updatedAt: '2023-02-20T10:00:00Z' },
+  { userId: 'friend_002', friendId: 'user_001', status: 'accepted', createdAt: '2023-01-15T10:00:00Z', updatedAt: '2023-01-15T10:00:00Z' },
+  { userId: 'friend_003', friendId: 'user_001', status: 'accepted', createdAt: '2023-03-20T10:00:00Z', updatedAt: '2023-03-20T10:00:00Z' },
+  { userId: 'friend_004', friendId: 'user_001', status: 'accepted', createdAt: '2023-02-05T10:00:00Z', updatedAt: '2023-02-05T10:00:00Z' },
+  { userId: 'friend_005', friendId: 'user_001', status: 'accepted', createdAt: '2023-04-10T10:00:00Z', updatedAt: '2023-04-10T10:00:00Z' },
+  { userId: 'friend_006', friendId: 'user_001', status: 'accepted', createdAt: '2022-12-15T10:00:00Z', updatedAt: '2022-12-15T10:00:00Z' },
+  // testuser's friends
+  { userId: cognitoUserId, friendId: 'friend_001', status: 'accepted', createdAt: '2023-05-01T10:00:00Z', updatedAt: '2023-05-01T10:00:00Z' },
+  { userId: cognitoUserId, friendId: 'friend_002', status: 'accepted', createdAt: '2023-05-02T10:00:00Z', updatedAt: '2023-05-02T10:00:00Z' },
+  { userId: 'friend_001', friendId: cognitoUserId, status: 'accepted', createdAt: '2023-05-01T10:00:00Z', updatedAt: '2023-05-01T10:00:00Z' },
+  { userId: 'friend_002', friendId: cognitoUserId, status: 'accepted', createdAt: '2023-05-02T10:00:00Z', updatedAt: '2023-05-02T10:00:00Z' },
+  // ProGamer's friends
+  { userId: 'user_100', friendId: 'user_001', status: 'accepted', createdAt: '2023-06-01T10:00:00Z', updatedAt: '2023-06-01T10:00:00Z' },
+  { userId: 'user_001', friendId: 'user_100', status: 'accepted', createdAt: '2023-06-01T10:00:00Z', updatedAt: '2023-06-01T10:00:00Z' },
+  // Pending friend requests
+  { userId: 'friend_004', friendId: 'friend_005', status: 'pending', createdAt: '2024-01-10T10:00:00Z', updatedAt: '2024-01-10T10:00:00Z' },
 ];
 
 const gameStats = [
@@ -387,7 +415,7 @@ const tableData = {
   users: { tableName: 'users', data: users, keyField: 'id' },
   games: { tableName: 'games', data: games, keyField: 'id' },
   playerStats: { tableName: 'player-stats', data: playerStats, keyField: 'id' },
-//   friendships: { tableName: 'friends', data: friendships, keyField: 'id' },
+  friendships: { tableName: 'friends', data: friendships, keyField: 'userId' },
 //   gameStats: { tableName: 'gameStats', data: gameStats, keyField: 'id' },
 //   achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
 //   activities: { tableName: 'activities', data: activities, keyField: 'id' },
@@ -429,16 +457,24 @@ async function clearTable(docClient, tableName) {
   console.log(`  Clearing table: ${fullTableName}`);
   
   try {
+    // Determine key attributes based on table
+    const isFriendsTable = tableName === 'friends';
+    const projectionExpression = isFriendsTable ? 'userId, friendId' : 'id';
+    
     const scanResult = await docClient.send(new ScanCommand({
       TableName: fullTableName,
-      ProjectionExpression: 'id',
+      ProjectionExpression: projectionExpression,
     }));
 
     if (scanResult.Items && scanResult.Items.length > 0) {
       for (const item of scanResult.Items) {
+        const key = isFriendsTable 
+          ? { userId: item.userId, friendId: item.friendId }
+          : { id: item.id.S || item.id };
+        
         await docClient.send(new DeleteCommand({
           TableName: fullTableName,
-          Key: { id: item.id.S || item.id },
+          Key: key,
         }));
       }
       console.log(`    Deleted ${scanResult.Items.length} items`);
@@ -585,6 +621,104 @@ async function seedGraphQL() {
 }
 
 // ============================================
+// Cognito User Seeding
+// ============================================
+
+const createCognitoClient = () => {
+  const clientConfig = {
+    region: config.region,
+  };
+
+  if (process.env.AWS_PROFILE && !process.env.AWS_ACCESS_KEY_ID) {
+    const profile = process.env.AWS_PROFILE;
+    const hasSessionToken = profileHasSessionToken(profile);
+    clientConfig.credentials = hasSessionToken
+      ? fromIni({ profile })
+      : fromIni({ profile, mfaCodeProvider: getMfaCode });
+  }
+
+  return new CognitoIdentityProviderClient(clientConfig);
+};
+
+async function seedCognitoUser() {
+  console.log('\n🔐 Seeding Cognito test user...');
+  
+  if (!config.userPoolId) {
+    console.log('   ⚠️  COGNITO_USER_POOL_ID not set, skipping Cognito user creation');
+    return null;
+  }
+
+  const cognitoClient = createCognitoClient();
+  const testEmail = 'test@test.com';
+  const testPassword = 'Qwer!234';
+
+  try {
+    // Create the user
+    const createResponse = await cognitoClient.send(new AdminCreateUserCommand({
+      UserPoolId: config.userPoolId,
+      Username: testEmail,
+      UserAttributes: [
+        { Name: 'email', Value: testEmail },
+        { Name: 'email_verified', Value: 'true' },
+      ],
+      MessageAction: 'SUPPRESS', // Don't send welcome email
+    }));
+    console.log(`   ✓ Created Cognito user: ${testEmail}`);
+
+    // Set permanent password (bypasses temporary password flow)
+    await cognitoClient.send(new AdminSetUserPasswordCommand({
+      UserPoolId: config.userPoolId,
+      Username: testEmail,
+      Password: testPassword,
+      Permanent: true,
+    }));
+    console.log(`   ✓ Set permanent password for: ${testEmail}`);
+
+    // Get the user's sub (userId) from the create response
+    const subAttribute = createResponse.User?.Attributes?.find(attr => attr.Name === 'sub');
+    const userId = subAttribute?.Value;
+    console.log(`   ✓ User ID (sub): ${userId}`);
+    return userId;
+
+  } catch (error) {
+    if (error instanceof UsernameExistsException || error.name === 'UsernameExistsException') {
+      console.log(`   ℹ️  User ${testEmail} already exists, skipping creation`);
+      
+      // Still try to set the password in case it needs updating
+      try {
+        await cognitoClient.send(new AdminSetUserPasswordCommand({
+          UserPoolId: config.userPoolId,
+          Username: testEmail,
+          Password: testPassword,
+          Permanent: true,
+        }));
+        console.log(`   ✓ Updated password for existing user: ${testEmail}`);
+      } catch (pwError) {
+        console.log(`   ⚠️  Could not update password: ${pwError.message}`);
+      }
+
+      // Get the existing user's sub (userId)
+      try {
+        const getUserResponse = await cognitoClient.send(new AdminGetUserCommand({
+          UserPoolId: config.userPoolId,
+          Username: testEmail,
+        }));
+        const subAttribute = getUserResponse.UserAttributes?.find(attr => attr.Name === 'sub');
+        const userId = subAttribute?.Value;
+        console.log(`   ✓ User ID (sub): ${userId}`);
+        return userId;
+      } catch (getError) {
+        console.log(`   ⚠️  Could not get user ID: ${getError.message}`);
+        return null;
+      }
+    } else {
+      console.error(`   ✗ Failed to create Cognito user: ${error.message}`);
+      return null;
+    }
+  }
+}
+
+// ============================================
 // Main Execution
 // ============================================
 
@@ -597,6 +731,9 @@ async function main() {
   console.log(`  Tables: ${config.tables ? config.tables.join(', ') : 'all'}`);
 
   try {
+    // Seed Cognito test user
+    cognitoUserId = await seedCognitoUser();
+
     if (config.mode === 'graphql') {
       await seedGraphQL();
     } else {

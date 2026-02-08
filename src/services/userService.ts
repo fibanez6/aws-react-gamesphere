@@ -265,7 +265,7 @@ const graphqlUserService = {
         variables: { userId },
       });
       const data = (result as any).data?.getPlayerStats;
-      debugLog('GraphQL: User stats result', { data });
+      // debugLog('GraphQL: User stats result', { data });
       return data || null;
     } catch (error) {
       debugError('GraphQL: Error getting user stats', error);

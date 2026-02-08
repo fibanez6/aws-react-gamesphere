@@ -25,6 +25,7 @@
     "recharts": "^2.10.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.985.0",
     "@aws-sdk/client-dynamodb": "^3.985.0",
     "@aws-sdk/credential-provider-ini": "^3.972.5",
     "@aws-sdk/lib-dynamodb": "^3.985.0",

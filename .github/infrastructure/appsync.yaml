@@ -644,6 +644,108 @@ Resources:
         TableName: !Ref LeaderboardTableName
         AwsRegion: !Ref AWS::Region
 
+  # Pipeline Functions
+  # To get friendships from FriendsTable
+  GetFriendshipsFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      Name: GetFriendshipsFunction
+      DataSourceName: !GetAtt FriendsDataSource.Name
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: |
+        import { util } from '@aws-appsync/utils';
+        
+        export function request(ctx) {
+          return {
+            operation: 'Query',
+            query: {
+              expression: 'userId = :userId AND #status = :status',
+              expressionNames: { '#status': 'status' },
+              expressionValues: util.dynamodb.toMapValues({ 
+                ':userId': ctx.args.userId,
+                ':status': 'accepted'
+              }),
+            },
+            index: 'userId-status-index',
+          };
+        }
+        
+        export function response(ctx) {
+          if (ctx.error) {
+            util.error(ctx.error.message, ctx.error.type);
+          }
+          // Store friendships in stash for next function
+          ctx.stash.friendships = ctx.result.items || [];
+          return ctx.result.items;
+        }
+
+  # To get user details from UsersTable
+  GetFriendUsersFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      Name: GetFriendUsersFunction
+      DataSourceName: !GetAtt UsersDataSource.Name
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: !Sub |
+        import { util } from '@aws-appsync/utils';
+        
+        export function request(ctx) {
+          const friendships = ctx.stash.friendships || [];
+          if (friendships.length === 0) {
+            return { operation: 'Scan', limit: 0 };
+          }
+          
+          // Build batch get request for all friend user IDs
+          const keys = friendships.map(f => util.dynamodb.toMapValues({ id: f.friendId }));
+          
+          return {
+            operation: 'BatchGetItem',
+            tables: {
+              '${UsersTableName}': {
+                keys: keys,
+                consistentRead: false,
+              },
+            },
+          };
+        }
+        
+        export function response(ctx) {
+          if (ctx.error) {
+            util.error(ctx.error.message, ctx.error.type);
+          }
+          
+          const friendships = ctx.stash.friendships || [];
+          const users = ctx.result.data['${UsersTableName}'] || [];
+          
+          // Create a map of userId to user for quick lookup
+          const userMap = {};
+          for (const user of users) {
+            userMap[user.id] = user;
+          }
+          
+          // Build Friend objects combining friendship and user data
+          const friends = friendships.map(friendship => {
+            const user = userMap[friendship.friendId] || {};
+            return {
+              id: friendship.friendId,
+              username: user.username || 'Unknown',
+              avatar: user.avatar || null,
+              status: user.status || 'OFFLINE',
+              currentGame: user.currentGame || null,
+              rank: user.rank || 'BRONZE',
+              friendSince: friendship.createdAt,
+            };
+          });
+          
+          return friends;
+        }
+  
   # Resolvers
   GetUserResolver:
     Type: AWS::AppSync::Resolver
@@ -735,32 +837,32 @@ Resources:
           };
         }
 
+  # Pipeline resolver for getFriends
   GetFriendsResolver:
     Type: AWS::AppSync::Resolver
-    DependsOn: GraphQLSchema
+    DependsOn: 
+      - GraphQLSchema
+      - GetFriendshipsFunction
+      - GetFriendUsersFunction
     Properties:
       ApiId: !GetAtt GraphQLApi.ApiId
       TypeName: Query
       FieldName: getFriends
-      DataSourceName: !GetAtt FriendsDataSource.Name
+      Kind: PIPELINE
+      PipelineConfig:
+        Functions:
+          - !GetAtt GetFriendshipsFunction.FunctionId
+          - !GetAtt GetFriendUsersFunction.FunctionId
       Runtime:
         Name: APPSYNC_JS
         RuntimeVersion: 1.0.0
       Code: |
-        import { util } from '@aws-appsync/utils';
-        
         export function request(ctx) {
-          return {
-            operation: 'Query',
-            query: {
-              expression: 'userId = :userId',
-              expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),
-            },
-          };
+          return {};
         }
         
         export function response(ctx) {
-          return ctx.result.items;
+          return ctx.prev.result;
         }
 
   GetLiveSessionsResolver:
