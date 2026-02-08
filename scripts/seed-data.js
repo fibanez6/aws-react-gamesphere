@@ -103,7 +103,7 @@ let cognitoUserId = '295e4428-c051-703e-e8f1-959ef06bca21'
 
 const users = [
     {
-        id: '694e2468-c051-702a-d9a9-ce56e2d4d6a7',
+        id: cognitoUserId,
         username: 'testuser',
         email: 'shadow@gamesphere.io',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',

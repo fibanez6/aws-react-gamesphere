@@ -207,7 +207,7 @@ Resources:
           # getGameDetails(id: ID!): GameDetails
 
           # Player Stats Queries
-          getPlayerStats(userId: ID!, gameId: ID!): PlayerStats
+          getPlayerStats(userId: ID!): PlayerStats
           # getPlayerProfile(userId: ID!): PlayerProfile
           
           # Friends Queries
