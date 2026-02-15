@@ -383,12 +383,12 @@ const gameStats = [
 ];
 
 const achievements = [
-  { id: 'ach_001', name: 'First Blood', description: 'Win your first match', icon: '🏆', rarity: 'common', unlockedAt: '2023-01-20T15:30:00Z', gameId: 'game_003', gameName: 'Valorant', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#common' },
-  { id: 'ach_002', name: 'Elden Lord', description: 'Complete the main story', icon: '👑', rarity: 'legendary', unlockedAt: '2023-03-15T22:45:00Z', gameId: 'game_001', gameName: 'Elden Ring', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#legendary' },
-  { id: 'ach_003', name: 'Sharpshooter', description: 'Get 100 headshots', icon: '🎯', rarity: 'rare', unlockedAt: '2023-02-10T14:20:00Z', gameId: 'game_003', gameName: 'Valorant', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#rare' },
-  { id: 'ach_004', name: 'Speedrunner', description: 'Complete a level in under 5 minutes', icon: '⚡', rarity: 'epic', unlockedAt: '2023-04-05T11:15:00Z', gameId: 'game_001', gameName: 'Elden Ring', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#epic' },
-  { id: 'ach_005', name: 'Social Butterfly', description: 'Add 50 friends', icon: '🦋', rarity: 'rare', unlockedAt: '2023-05-20T09:00:00Z', gameId: null, gameName: null, GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#rare' },
-  { id: 'ach_006', name: 'Veteran Player', description: 'Play for 1000 hours total', icon: '🎖️', rarity: 'legendary', unlockedAt: '2024-08-10T20:30:00Z', gameId: null, gameName: null, GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#legendary' },
+  { id: 'ach_001', userId: cognitoUserId, name: 'First Blood', description: 'Win your first match', icon: '🏆', rarity: 'common', unlockedAt: '2023-01-20T15:30:00Z', gameId: 'game_003', gameName: 'Valorant', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#common' },
+  { id: 'ach_002', userId: cognitoUserId, name: 'Elden Lord', description: 'Complete the main story', icon: '👑', rarity: 'legendary', unlockedAt: '2023-03-15T22:45:00Z', gameId: 'game_001', gameName: 'Elden Ring', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#legendary' },
+  { id: 'ach_003', userId: cognitoUserId, name: 'Sharpshooter', description: 'Get 100 headshots', icon: '🎯', rarity: 'rare', unlockedAt: '2023-02-10T14:20:00Z', gameId: 'game_003', gameName: 'Valorant', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#rare' },
+  { id: 'ach_004', userId: cognitoUserId, name: 'Speedrunner', description: 'Complete a level in under 5 minutes', icon: '⚡', rarity: 'epic', unlockedAt: '2023-04-05T11:15:00Z', gameId: 'game_001', gameName: 'Elden Ring', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#epic' },
+  { id: 'ach_005', userId: cognitoUserId, name: 'Social Butterfly', description: 'Add 50 friends', icon: '🦋', rarity: 'rare', unlockedAt: '2023-05-20T09:00:00Z', gameId: 'GLOBAL', gameName: 'GameSphere', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#rare' },
+  { id: 'ach_006', userId: cognitoUserId, name: 'Veteran Player', description: 'Play for 1000 hours total', icon: '🎖️', rarity: 'legendary', unlockedAt: '2024-08-10T20:30:00Z', gameId: 'GLOBAL', gameName: 'GameSphere', GSI1PK: 'ACHIEVEMENTS', GSI1SK: 'RARITY#legendary' },
 ];
 
 const activities = [
@@ -428,7 +428,7 @@ const tableData = {
   playerStats: { tableName: 'player-stats', data: playerStats, keyField: 'id' },
   friendships: { tableName: 'friends', data: friendships, keyField: 'userId' },
 //   gameStats: { tableName: 'gameStats', data: gameStats, keyField: 'id' },
-//   achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
+  achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
   activities: { tableName: 'activities', data: activities, keyField: 'id' },
 //   liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
 //   leaderboard: { tableName: 'leaderboard', data: leaderboard, keyField: 'id' },

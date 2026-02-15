@@ -237,7 +237,7 @@ Resources:
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
-        - AttributeName: oderId
+        - AttributeName: userId
           AttributeType: S
         - AttributeName: gameId
           AttributeType: S
@@ -249,7 +249,7 @@ Resources:
       GlobalSecondaryIndexes:
         - IndexName: userId-unlockedAt-index
           KeySchema:
-            - AttributeName: oderId
+            - AttributeName: userId
               KeyType: HASH
             - AttributeName: unlockedAt
               KeyType: RANGE

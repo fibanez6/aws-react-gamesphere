@@ -219,7 +219,7 @@ Resources:
           # getUserSession(userId: ID!): GameSession
           
           # Achievement Sessions # TODO
-          getAchievements(userId: ID!): [Achievement]!
+          getAchievements(userId: ID!, limit: Int, nextToken: String): AchievementConnection!
 
           # Activity Queries # TODO
           getRecentActivities(userId: ID!, limit: Int, nextToken: String): ActivityConnection!
@@ -416,6 +416,12 @@ Resources:
 
         type ActivityConnection {
           items: [Activity!]!
+          nextToken: String
+          totalCount: Int
+        }
+
+        type AchievementConnection {
+          items: [Achievement!]!
           nextToken: String
           totalCount: Int
         }
@@ -916,17 +922,26 @@ Resources:
         import { util } from '@aws-appsync/utils';
         
         export function request(ctx) {
+          const limit = ctx.args.limit || 20;
           return {
             operation: 'Query',
+            index: 'userId-unlockedAt-index',
             query: {
               expression: 'userId = :userId',
               expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),
             },
+            limit,
+            scanIndexForward: false,
+            nextToken: ctx.args.nextToken,
           };
         }
         
         export function response(ctx) {
-          return ctx.result.items;
+          return {
+            items: ctx.result.items,
+            nextToken: ctx.result.nextToken,
+            totalCount: ctx.result.scannedCount
+          };
         }
 
   GetRecentActivitiesResolver:
