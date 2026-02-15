@@ -1,0 +1,5 @@
+fix GetAchievementsResolver
+fix getLeaderboard
+fix getLiveSessions
+fix Mutations
+fix Subscriptions
