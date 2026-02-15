@@ -2,3 +2,6 @@ fix getLeaderboard
 fix getLiveSessions
 fix Mutations
 fix Subscriptions
+
+
+fix multiple edit of .env and .env.local

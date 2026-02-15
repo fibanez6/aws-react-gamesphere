@@ -37,7 +37,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <StatsGrid stats={stats} isLoading={isLoading} />
+      <StatsGrid stats={stats ?? null} isLoading={isLoading} />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
