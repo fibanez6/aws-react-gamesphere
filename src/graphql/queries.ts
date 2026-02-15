@@ -77,55 +77,68 @@ export const getRecentActivities = /* GraphQL */ `
 `;
 
 export const getPlayerProfile = /* GraphQL */ `
-  query GetPlayerProfile($playerId: ID!) {
-    getPlayerProfile(playerId: $playerId) {
+  query GetPlayerProfile($userId: ID!) {
+    getPlayerProfile(userId: $userId) {
       user {
-        id
-        username
-        email
         avatar
+        createdAt
+        email
+        id
         level
         rank
+        status
+        updatedAt
+        username
         xp
-        xpToNextLevel
-        isOnline
-        isPublicProfile
-        createdAt
-        lastActiveAt
       }
       stats {
-        userId
-        gameId
         achievementsUnlocked
-        totalHoursPlayed
-        totalAchievements
-        totalWins
-        totalMatches
-        winRate
-        weeklyPlaytime
-        monthlyPlaytime
         currentStreak
+        gamesOwned
         longestStreak
+        monthlyPlaytime
+        totalAchievements
+        totalHoursPlayed
+        totalMatches
+        totalWins
+        userId
+        weeklyPlaytime
+        winRate
       }
       gameStats {
+        gameCover
         gameId
         gameName
         hoursPlayed
-        winRate
-        rank
         lastPlayed
-        achievements
-        totalAchievements
+        losses
+        rank
+        totalMatches
+        wins
+        winRate
       }
       achievements {
+        gameId
+        description
+        gameName
+        icon
         id
         name
-        description
-        icon
-        rarity
         unlockedAt
+        rarity
+      }
+      recentActivity {
+        avatar
+        createdAt
+        description
+        gameCover
         gameId
         gameName
+        id
+        title
+        type
+        userId
+        username
       }
     }
   }

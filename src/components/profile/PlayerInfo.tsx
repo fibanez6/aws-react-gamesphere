@@ -28,7 +28,9 @@ export default function PlayerInfo({
     );
   }
 
-  const xpPercentage = (user.xp / user.xpToNextLevel) * 100;
+  const xp = user.xp ?? 0;
+  const xpToNextLevel = user.xpToNextLevel ?? 1000;
+  const xpPercentage = (xp / xpToNextLevel) * 100;
 
   return (
     <div className="card">
@@ -57,14 +59,14 @@ export default function PlayerInfo({
         <div className="flex items-center gap-2 mt-2">
           <RankBadge rank={user.rank} />
           <span className="text-dark-400">•</span>
-          <span className="text-dark-400">Level {user.level}</span>
+          <span className="text-dark-400">Level {user.level ?? 1}</span>
         </div>
 
         {/* XP Progress */}
         <div className="w-full mt-6">
           <div className="flex justify-between text-xs text-dark-400 mb-2">
             <span>XP Progress</span>
-            <span>{user.xp.toLocaleString()} / {user.xpToNextLevel.toLocaleString()}</span>
+            <span>{xp.toLocaleString()} / {xpToNextLevel.toLocaleString()}</span>
           </div>
           <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
             <div
@@ -73,7 +75,7 @@ export default function PlayerInfo({
             />
           </div>
           <p className="text-xs text-dark-500 mt-1">
-            {(user.xpToNextLevel - user.xp).toLocaleString()} XP to Level {user.level + 1}
+            {(xpToNextLevel - xp).toLocaleString()} XP to Level {(user.level ?? 1) + 1}
           </p>
         </div>
 

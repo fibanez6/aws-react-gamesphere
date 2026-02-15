@@ -44,23 +44,23 @@ export default function Profile() {
               <div className="space-y-3">
                 <StatRow
                   label="Total Hours"
-                  value={`${profile.stats.totalHoursPlayed.toLocaleString()}h`}
+                  value={`${(profile.stats.totalHoursPlayed ?? 0).toLocaleString()}h`}
                 />
                 <StatRow
                   label="Games Owned"
-                  value={profile.stats.gamesOwned.toString()}
+                  value={(profile.stats.gamesOwned ?? 0).toString()}
                 />
                 <StatRow
                   label="Win Rate"
-                  value={`${Math.round(profile.stats.winRate * 100)}%`}
+                  value={`${Math.round((profile.stats.winRate ?? 0) * 100)}%`}
                 />
                 <StatRow
                   label="Total Wins"
-                  value={profile.stats.totalWins.toLocaleString()}
+                  value={(profile.stats.totalWins ?? 0).toLocaleString()}
                 />
                 <StatRow
                   label="Total Matches"
-                  value={profile.stats.totalMatches.toLocaleString()}
+                  value={(profile.stats.totalMatches ?? 0).toLocaleString()}
                 />
               </div>
             </div>

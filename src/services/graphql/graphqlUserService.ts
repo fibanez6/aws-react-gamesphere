@@ -94,7 +94,7 @@ export const graphqlUserService = {
       const client = getClient();
       const result = await client.graphql({
         query: getPlayerProfile,
-        variables: { playerId },
+        variables: { userId: playerId },
       });
       return (result as any).data?.getPlayerProfile || null;
     } catch (error) {
