@@ -111,19 +111,28 @@ function ActivityItem({ activity }: { activity: Activity }) {
 }
 
 function getActivityDescription(activity: Activity): string {
+  // Use description if available, otherwise derive from type
+  if (activity.description) {
+    return activity.description;
+  }
+  
   switch (activity.type) {
     case 'game_played':
-      return `played ${activity.metadata.gameName}${activity.metadata.duration ? ` for ${Math.round(activity.metadata.duration / 60)}h` : ''}`;
+    case 'GAME_ENDED':
+      return `played ${activity.gameName || 'a game'}`;
     case 'achievement_unlocked':
-      return `unlocked "${activity.metadata.achievementName}"`;
+    case 'ACHIEVEMENT_UNLOCKED':
+      return activity.title || 'unlocked an achievement';
     case 'friend_added':
+    case 'FRIEND_ADDED':
       return 'added a new friend';
     case 'level_up':
-      return `reached Level ${activity.metadata.newLevel}`;
+    case 'RANK_UP':
+      return activity.title || 'leveled up';
     case 'rank_up':
-      return `reached ${activity.metadata.newRank} rank`;
+      return activity.title || 'ranked up';
     default:
-      return activity.description;
+      return activity.title || 'activity';
   }
 }
 

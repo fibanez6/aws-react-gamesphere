@@ -222,7 +222,7 @@ Resources:
           getAchievements(userId: ID!): [Achievement]!
 
           # Activity Queries # TODO
-          getRecentActivities(userId: ID!, limit: Int): [Activity!]!
+          getRecentActivities(userId: ID!, limit: Int, nextToken: String): ActivityConnection!
           # getFriendActivities(userId: ID!, limit: Int): [Activity!]!
           
           # Leaderboard Queries # TODO
@@ -412,6 +412,12 @@ Resources:
         type GameConnection {
           items: [Game!]!
           nextToken: String
+        }
+
+        type ActivityConnection {
+          items: [Activity!]!
+          nextToken: String
+          totalCount: Int
         }
 
         # Events
@@ -948,11 +954,16 @@ Resources:
             },
             limit,
             scanIndexForward: false,
+            nextToken: ctx.args.nextToken,
           };
         }
         
         export function response(ctx) {
-          return ctx.result.items;
+          return {
+            items: ctx.result.items,
+            nextToken: ctx.result.nextToken,
+            totalCount: ctx.result.scannedCount
+          };
         }
 
   GetLeaderboardResolver:

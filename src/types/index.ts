@@ -103,20 +103,15 @@ export interface Achievement {
 // Activity Types
 export interface Activity {
   id: string;
-  type: 'game_played' | 'achievement_unlocked' | 'friend_added' | 'level_up' | 'rank_up';
+  type: 'game_played' | 'achievement_unlocked' | 'friend_added' | 'level_up' | 'rank_up' | string;
   userId: string;
   username: string;
   avatar: string;
-  description: string;
-  metadata: {
-    gameId?: string;
-    gameName?: string;
-    achievementId?: string;
-    achievementName?: string;
-    newLevel?: number;
-    newRank?: string;
-    duration?: number;
-  };
+  title: string;
+  description?: string;
+  gameId?: string;
+  gameName?: string;
+  gameCover?: string;
   createdAt: string;
 }
 

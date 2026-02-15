@@ -63,16 +63,11 @@ export const getRecentActivities = /* GraphQL */ `
         userId
         username
         avatar
+        title
         description
-        metadata {
-          gameId
-          gameName
-          achievementId
-          achievementName
-          newLevel
-          newRank
-          duration
-        }
+        gameId
+        gameName
+        gameCover
         createdAt
       }
       nextToken
