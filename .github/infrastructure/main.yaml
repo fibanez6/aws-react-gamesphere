@@ -88,6 +88,8 @@ Resources:
         ActivitiesTableArn: !GetAtt DynamoDBStack.Outputs.ActivitiesTableArn
         LeaderboardTableName: !GetAtt DynamoDBStack.Outputs.LeaderboardTableName
         LeaderboardTableArn: !GetAtt DynamoDBStack.Outputs.LeaderboardTableArn
+        GameStatsTableName: !GetAtt DynamoDBStack.Outputs.GameStatsTableName
+        GameStatsTableArn: !GetAtt DynamoDBStack.Outputs.GameStatsTableArn
       Tags:
         - Key: Project
           Value: !Ref ProjectName

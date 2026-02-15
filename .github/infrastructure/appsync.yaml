@@ -80,6 +80,14 @@ Parameters:
     Type: String
     Description: DynamoDB Leaderboard Table ARN
 
+  GameStatsTableName:
+    Type: String
+    Description: DynamoDB Game Stats Table Name
+
+  GameStatsTableArn:
+    Type: String
+    Description: DynamoDB Game Stats Table ARN
+
 Conditions:
   IsProd: !Equals [!Ref Environment, 'prod']
   
@@ -186,6 +194,8 @@ Resources:
                   - !Sub '${ActivitiesTableArn}/index/*'
                   - !Ref LeaderboardTableArn
                   - !Sub '${LeaderboardTableArn}/index/*'
+                  - !Ref GameStatsTableArn
+                  - !Sub '${GameStatsTableArn}/index/*'
 
   # GraphQL Schema
   GraphQLSchema:
@@ -656,6 +666,17 @@ Resources:
         TableName: !Ref LeaderboardTableName
         AwsRegion: !Ref AWS::Region
 
+  GameStatsDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      Name: GameStatsDataSource
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt AppSyncDynamoDBRole.Arn
+      DynamoDBConfig:
+        TableName: !Ref GameStatsTableName
+        AwsRegion: !Ref AWS::Region
+
   # Pipeline Functions
   # To get friendships from FriendsTable
   GetFriendshipsFunction:
@@ -901,6 +922,48 @@ Resources:
           ctx.stash.activitiesTotalCount = ctx.result.scannedCount;
           return ctx.stash.recentActivity;
         }
+
+  GetGameStatsFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      Name: GetGameStatsFunction
+      DataSourceName: !GetAtt GameStatsDataSource.Name
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: |
+        import { util } from '@aws-appsync/utils';
+        
+        export function request(ctx) {
+          return {
+            operation: 'Query',
+            query: {
+              expression: 'userId = :userId',
+              expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),
+            },
+            scanIndexForward: false,
+          };
+        }
+        
+        export function response(ctx) {
+          if (ctx.error) {
+            util.error(ctx.error.message, ctx.error.type);
+          }
+          ctx.stash.gameStats = (ctx.result.items || []).map(item => ({
+            gameId: item.gameId,
+            gameName: item.gameName || '',
+            gameCover: item.gameCover || null,
+            hoursPlayed: item.hoursPlayed ?? 0,
+            lastPlayed: item.lastPlayed,
+            rank: item.rank || 'BRONZE',
+            winRate: item.winRate ?? 0,
+            totalMatches: item.totalMatches ?? 0,
+            wins: item.wins ?? 0,
+            losses: item.losses ?? 0,
+          }));
+          return ctx.stash.gameStats;
+        }
   
   # Resolvers
   GetUserResolver:
@@ -961,6 +1024,7 @@ Resources:
       - GetPlayerStatsFunction
       - GetAchievementsFunction
       - GetActivitiesFunction
+      - GetGameStatsFunction
     Properties:
       ApiId: !GetAtt GraphQLApi.ApiId
       TypeName: Query
@@ -972,6 +1036,7 @@ Resources:
           - !GetAtt GetPlayerStatsFunction.FunctionId
           - !GetAtt GetAchievementsFunction.FunctionId
           - !GetAtt GetActivitiesFunction.FunctionId
+          - !GetAtt GetGameStatsFunction.FunctionId
       Runtime:
         Name: APPSYNC_JS
         RuntimeVersion: 1.0.0
@@ -984,7 +1049,7 @@ Resources:
           return {
             user: ctx.stash.user,
             stats: ctx.stash.stats,
-            gameStats: [], // TODO: Implement GameStats function and add to pipeline
+            gameStats: ctx.stash.gameStats,
             achievements: ctx.stash.achievements,
             recentActivity: ctx.stash.recentActivity
           };

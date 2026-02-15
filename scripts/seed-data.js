@@ -377,9 +377,9 @@ const friendships = [
 ];
 
 const gameStats = [
-  { id: 'gamestats_001', PK: 'USER#user_001', SK: 'GAME#game_001', userId: 'user_001', gameId: 'game_001', gameName: 'Elden Ring', hoursPlayed: 342, winRate: 0.45, rank: 'Platinum', lastPlayed: new Date().toISOString(), achievements: 45, totalAchievements: 50 },
-  { id: 'gamestats_002', PK: 'USER#user_001', SK: 'GAME#game_003', userId: 'user_001', gameId: 'game_003', gameName: 'Valorant', hoursPlayed: 520, winRate: 0.58, rank: 'Diamond', lastPlayed: new Date(Date.now() - 86400000).toISOString(), achievements: 28, totalAchievements: 40 },
-  { id: 'gamestats_003', PK: 'USER#user_001', SK: 'GAME#game_004', userId: 'user_001', gameId: 'game_004', gameName: 'League of Legends', hoursPlayed: 285, winRate: 0.52, rank: 'Gold', lastPlayed: new Date(Date.now() - 259200000).toISOString(), achievements: 35, totalAchievements: 60 },
+  { userId: cognitoUserId, gameId: 'game_001', gameName: 'Elden Ring', gameCover: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300', hoursPlayed: 342, lastPlayed: new Date().toISOString(), rank: 'PLATINUM', winRate: 0.45, totalMatches: 120, wins: 54, losses: 66 },
+  { userId: cognitoUserId, gameId: 'game_003', gameName: 'Valorant', gameCover: 'https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?w=300', hoursPlayed: 520, lastPlayed: new Date(Date.now() - 86400000).toISOString(), rank: 'DIAMOND', winRate: 0.58, totalMatches: 200, wins: 116, losses: 84 },
+  { userId: cognitoUserId, gameId: 'game_004', gameName: 'League of Legends', gameCover: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300', hoursPlayed: 285, lastPlayed: new Date(Date.now() - 259200000).toISOString(), rank: 'GOLD', winRate: 0.52, totalMatches: 150, wins: 78, losses: 72 },
 ];
 
 const achievements = [
@@ -427,7 +427,7 @@ const tableData = {
   games: { tableName: 'games', data: games, keyField: 'id' },
   playerStats: { tableName: 'player-stats', data: playerStats, keyField: 'id' },
   friendships: { tableName: 'friends', data: friendships, keyField: 'userId' },
-//   gameStats: { tableName: 'gameStats', data: gameStats, keyField: 'id' },
+  gameStats: { tableName: 'game-stats', data: gameStats, keyField: 'userId', sortKeyField: 'gameId' },
   achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
   activities: { tableName: 'activities', data: activities, keyField: 'id' },
 //   liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
@@ -470,7 +470,10 @@ async function clearTable(docClient, tableName) {
   try {
     // Determine key attributes based on table
     const isFriendsTable = tableName === 'friends';
-    const projectionExpression = isFriendsTable ? 'userId, friendId' : 'id';
+    const isGameStatsTable = tableName === 'game-stats';
+    let projectionExpression = 'id';
+    if (isFriendsTable) projectionExpression = 'userId, friendId';
+    if (isGameStatsTable) projectionExpression = 'userId, gameId';
     
     const scanResult = await docClient.send(new ScanCommand({
       TableName: fullTableName,
@@ -479,9 +482,14 @@ async function clearTable(docClient, tableName) {
 
     if (scanResult.Items && scanResult.Items.length > 0) {
       for (const item of scanResult.Items) {
-        const key = isFriendsTable 
-          ? { userId: item.userId, friendId: item.friendId }
-          : { id: item.id.S || item.id };
+        let key;
+        if (isFriendsTable) {
+          key = { userId: item.userId, friendId: item.friendId };
+        } else if (isGameStatsTable) {
+          key = { userId: item.userId, gameId: item.gameId };
+        } else {
+          key = { id: item.id.S || item.id };
+        }
         
         await docClient.send(new DeleteCommand({
           TableName: fullTableName,

@@ -354,6 +354,41 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
 
+  # Game Stats Table (per-user, per-game statistics)
+  GameStatsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-${Environment}-game-stats'
+      BillingMode: !Ref BillingMode
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: gameId
+          AttributeType: S
+        - AttributeName: lastPlayed
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: gameId
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: gameId-lastPlayed-index
+          KeySchema:
+            - AttributeName: gameId
+              KeyType: HASH
+            - AttributeName: lastPlayed
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
 Conditions:
   IsProd: !Equals [!Ref Environment, 'prod']
 
@@ -459,3 +494,15 @@ Outputs:
     Value: !GetAtt PlayerStatsTable.Arn
     Export:
       Name: !Sub '${ProjectName}-${Environment}-PlayerStatsTableArn'
+
+  GameStatsTableName:
+    Description: Game Stats Table Name
+    Value: !Ref GameStatsTable
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-GameStatsTableName'
+
+  GameStatsTableArn:
+    Description: Game Stats Table ARN
+    Value: !GetAtt GameStatsTable.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-GameStatsTableArn'
