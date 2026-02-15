@@ -8,7 +8,8 @@ import { usePlayerProfile } from '../hooks/usePlayerProfile';
 export default function Profile() {
   const { playerId } = useParams<{ playerId?: string }>();
   const { user } = useAuth();
-  const { profile, isLoading } = usePlayerProfile(playerId);
+  const effectivePlayerId = playerId || user?.id;
+  const { profile, isLoading } = usePlayerProfile(effectivePlayerId);
 
   const isOwnProfile = !playerId || playerId === user?.id;
 

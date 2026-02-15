@@ -3,3 +3,8 @@ fix getLeaderboard
 fix getLiveSessions
 fix Mutations
 fix Subscriptions
+
+
+TODO GetPlayerProfile.gameStats
+
+CHECK if Dashboard could call GetPlayerProfile

@@ -2,6 +2,7 @@
 
 import {
   Achievement,
+  Activity,
   GameStats,
   PlayerStats,
   User,
@@ -19,4 +20,5 @@ export interface PlayerProfile {
   stats: PlayerStats;
   gameStats: GameStats[];
   achievements: Achievement[];
+  recentActivity: Activity[];
 }

@@ -23,6 +23,7 @@ export function useUserStats(userId: string): UseUserStatsResult {
       const result = await userService.getUserStats(userId);
       setStats(result);
     } catch (err) {
+      debugLog('UseUserStats: Error fetching user stats:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch stats'));
     } finally {
       setIsLoading(false);

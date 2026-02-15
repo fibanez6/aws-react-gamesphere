@@ -208,7 +208,7 @@ Resources:
 
           # Player Stats Queries
           getPlayerStats(userId: ID!): PlayerStats
-          # getPlayerProfile(userId: ID!): PlayerProfile
+          getPlayerProfile(userId: ID!): PlayerProfile
           
           # Friends Queries 
           getFriends(userId: ID!): [Friend!]!
@@ -757,16 +757,42 @@ Resources:
           
           return friends;
         }
-  
-  # Resolvers
-  GetUserResolver:
-    Type: AWS::AppSync::Resolver
-    DependsOn: GraphQLSchema
+
+  # Pipeline Functions for GetPlayerProfile
+  GetUserFunction:
+    Type: AWS::AppSync::FunctionConfiguration
     Properties:
       ApiId: !GetAtt GraphQLApi.ApiId
-      TypeName: Query
-      FieldName: getUser
+      Name: GetUserFunction
       DataSourceName: !GetAtt UsersDataSource.Name
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: |
+        import { util } from '@aws-appsync/utils';
+        
+        export function request(ctx) {
+          const userId = ctx.args.userId || ctx.args.id;
+          return {
+            operation: 'GetItem',
+            key: util.dynamodb.toMapValues({ id: userId }),
+          };
+        }
+        
+        export function response(ctx) {
+          if (ctx.error) {
+            util.error(ctx.error.message, ctx.error.type);
+          }
+          ctx.stash.user = ctx.result;
+          return ctx.result;
+        }
+
+  GetPlayerStatsFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      Name: GetPlayerStatsFunction
+      DataSourceName: !GetAtt PlayerStatsDataSource.Name
       Runtime:
         Name: APPSYNC_JS
         RuntimeVersion: 1.0.0
@@ -776,12 +802,130 @@ Resources:
         export function request(ctx) {
           return {
             operation: 'GetItem',
-            key: util.dynamodb.toMapValues({ id: ctx.args.id }),
+            key: util.dynamodb.toMapValues({ userId: ctx.args.userId }),
           };
         }
         
         export function response(ctx) {
-          return ctx.result;
+          if (ctx.error) {
+            util.error(ctx.error.message, ctx.error.type);
+          }
+          const r = ctx.result || {};
+          ctx.stash.stats = {
+            userId: r.userId ?? ctx.args.userId,
+            gamesOwned: r.gamesOwned ?? 0,
+            achievementsUnlocked: r.achievementsUnlocked ?? 0,
+            totalHoursPlayed: r.totalHoursPlayed ?? 0,
+            totalAchievements: r.totalAchievements ?? 0,
+            totalWins: r.totalWins ?? 0,
+            totalMatches: r.totalMatches ?? 0,
+            winRate: r.winRate ?? 0,
+            weeklyPlaytime: r.weeklyPlaytime ?? [0,0,0,0,0,0,0],
+            monthlyPlaytime: r.monthlyPlaytime ?? [0,0,0,0,0,0,0,0,0,0,0,0],
+            currentStreak: r.currentStreak ?? 0,
+            longestStreak: r.longestStreak ?? 0,
+          };
+          return ctx.stash.stats;
+        }
+
+  GetAchievementsFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      Name: GetAchievementsFunction
+      DataSourceName: !GetAtt AchievementsDataSource.Name
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: |
+        import { util } from '@aws-appsync/utils';
+        
+        export function request(ctx) {
+          const limit = ctx.args.limit || 10;
+          return {
+            operation: 'Query',
+            index: 'userId-unlockedAt-index',
+            query: {
+              expression: 'userId = :userId',
+              expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),
+            },
+            limit,
+            scanIndexForward: false,
+            nextToken: ctx.args.nextToken,
+          };
+        }
+        
+        export function response(ctx) {
+          if (ctx.error) {
+            util.error(ctx.error.message, ctx.error.type);
+          }
+          ctx.stash.achievements = ctx.result.items || [];
+          ctx.stash.achievementsNextToken = ctx.result.nextToken;
+          ctx.stash.achievementsTotalCount = ctx.result.scannedCount;
+          return ctx.stash.achievements;
+        }
+
+  GetActivitiesFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      Name: GetActivitiesFunction
+      DataSourceName: !GetAtt ActivitiesDataSource.Name
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: |
+        import { util } from '@aws-appsync/utils';
+        
+        export function request(ctx) {
+          const limit = ctx.args.limit || 10;
+          return {
+            operation: 'Query',
+            index: 'userId-createdAt-index',
+            query: {
+              expression: 'userId = :userId',
+              expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),
+            },
+            limit,
+            scanIndexForward: false,
+            nextToken: ctx.args.nextToken,
+          };
+        }
+        
+        export function response(ctx) {
+          if (ctx.error) {
+            util.error(ctx.error.message, ctx.error.type);
+          }
+          ctx.stash.recentActivity = ctx.result.items || [];
+          ctx.stash.activitiesNextToken = ctx.result.nextToken;
+          ctx.stash.activitiesTotalCount = ctx.result.scannedCount;
+          return ctx.stash.recentActivity;
+        }
+  
+  # Resolvers
+  GetUserResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - GraphQLSchema
+      - GetUserFunction
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      TypeName: Query
+      FieldName: getUser
+      Kind: PIPELINE
+      PipelineConfig:
+        Functions:
+          - !GetAtt GetUserFunction.FunctionId
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: |
+        export function request(ctx) {
+          return {};
+        }
+        
+        export function response(ctx) {
+          return ctx.prev.result;
         }
 
   GetGameResolver:
@@ -809,44 +953,66 @@ Resources:
           return ctx.result;
         }
 
-  GetPlayerStatsResolver:
+  GetPlayerProfile:
     Type: AWS::AppSync::Resolver
-    DependsOn: GraphQLSchema
+    DependsOn:
+      - GraphQLSchema
+      - GetUserFunction
+      - GetPlayerStatsFunction
+      - GetAchievementsFunction
+      - GetActivitiesFunction
     Properties:
       ApiId: !GetAtt GraphQLApi.ApiId
       TypeName: Query
-      FieldName: getPlayerStats
-      DataSourceName: !GetAtt PlayerStatsDataSource.Name
+      FieldName: getPlayerProfile
+      Kind: PIPELINE
+      PipelineConfig:
+        Functions:
+          - !GetAtt GetUserFunction.FunctionId
+          - !GetAtt GetPlayerStatsFunction.FunctionId
+          - !GetAtt GetAchievementsFunction.FunctionId
+          - !GetAtt GetActivitiesFunction.FunctionId
       Runtime:
         Name: APPSYNC_JS
         RuntimeVersion: 1.0.0
       Code: |
-        import { util } from '@aws-appsync/utils';
-        
         export function request(ctx) {
-          return {
-            operation: 'GetItem',
-            key: util.dynamodb.toMapValues({ userId: ctx.args.userId }),
-          };
+          return {};
         }
         
         export function response(ctx) {
-          if (!ctx.result) return null;
-          const r = ctx.result;
           return {
-            userId: r.userId ?? ctx.args.userId,
-            gamesOwned: r.gamesOwned ?? 0,
-            achievementsUnlocked: r.achievementsUnlocked ?? 0,
-            totalHoursPlayed: r.totalHoursPlayed ?? 0,
-            totalAchievements: r.totalAchievements ?? 0,
-            totalWins: r.totalWins ?? 0,
-            totalMatches: r.totalMatches ?? 0,
-            winRate: r.winRate ?? 0,
-            weeklyPlaytime: r.weeklyPlaytime ?? [0,0,0,0,0,0,0],
-            monthlyPlaytime: r.monthlyPlaytime ?? [0,0,0,0,0,0,0,0,0,0,0,0],
-            currentStreak: r.currentStreak ?? 0,
-            longestStreak: r.longestStreak ?? 0,
+            user: ctx.stash.user,
+            stats: ctx.stash.stats,
+            gameStats: [], // TODO: Implement GameStats function and add to pipeline
+            achievements: ctx.stash.achievements,
+            recentActivity: ctx.stash.recentActivity
           };
+        }
+
+  GetPlayerStatsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - GraphQLSchema
+      - GetPlayerStatsFunction
+    Properties:
+      ApiId: !GetAtt GraphQLApi.ApiId
+      TypeName: Query
+      FieldName: getPlayerStats
+      Kind: PIPELINE
+      PipelineConfig:
+        Functions:
+          - !GetAtt GetPlayerStatsFunction.FunctionId
+      Runtime:
+        Name: APPSYNC_JS
+        RuntimeVersion: 1.0.0
+      Code: |
+        export function request(ctx) {
+          return {};
+        }
+        
+        export function response(ctx) {
+          return ctx.stash.stats;
         }
 
   # Pipeline resolver for getFriends
@@ -909,75 +1075,59 @@ Resources:
 
   GetAchievementsResolver:
     Type: AWS::AppSync::Resolver
-    DependsOn: GraphQLSchema
+    DependsOn:
+      - GraphQLSchema
+      - GetAchievementsFunction
     Properties:
       ApiId: !GetAtt GraphQLApi.ApiId
       TypeName: Query
       FieldName: getAchievements
-      DataSourceName: !GetAtt AchievementsDataSource.Name
+      Kind: PIPELINE
+      PipelineConfig:
+        Functions:
+          - !GetAtt GetAchievementsFunction.FunctionId
       Runtime:
         Name: APPSYNC_JS
         RuntimeVersion: 1.0.0
       Code: |
-        import { util } from '@aws-appsync/utils';
-        
         export function request(ctx) {
-          const limit = ctx.args.limit || 20;
-          return {
-            operation: 'Query',
-            index: 'userId-unlockedAt-index',
-            query: {
-              expression: 'userId = :userId',
-              expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),
-            },
-            limit,
-            scanIndexForward: false,
-            nextToken: ctx.args.nextToken,
-          };
+          return {};
         }
         
         export function response(ctx) {
           return {
-            items: ctx.result.items,
-            nextToken: ctx.result.nextToken,
-            totalCount: ctx.result.scannedCount
+            items: ctx.stash.achievements,
+            nextToken: ctx.stash.achievementsNextToken,
+            totalCount: ctx.stash.achievementsTotalCount
           };
         }
 
   GetRecentActivitiesResolver:
     Type: AWS::AppSync::Resolver
-    DependsOn: GraphQLSchema
+    DependsOn:
+      - GraphQLSchema
+      - GetActivitiesFunction
     Properties:
       ApiId: !GetAtt GraphQLApi.ApiId
       TypeName: Query
       FieldName: getRecentActivities
-      DataSourceName: !GetAtt ActivitiesDataSource.Name
+      Kind: PIPELINE
+      PipelineConfig:
+        Functions:
+          - !GetAtt GetActivitiesFunction.FunctionId
       Runtime:
         Name: APPSYNC_JS
         RuntimeVersion: 1.0.0
       Code: |
-        import { util } from '@aws-appsync/utils';
-        
         export function request(ctx) {
-          const limit = ctx.args.limit || 20;
-          return {
-            operation: 'Query',
-            index: 'userId-createdAt-index',
-            query: {
-              expression: 'userId = :userId',
-              expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),
-            },
-            limit,
-            scanIndexForward: false,
-            nextToken: ctx.args.nextToken,
-          };
+          return {};
         }
         
         export function response(ctx) {
           return {
-            items: ctx.result.items,
-            nextToken: ctx.result.nextToken,
-            totalCount: ctx.result.scannedCount
+            items: ctx.stash.recentActivity,
+            nextToken: ctx.stash.activitiesNextToken,
+            totalCount: ctx.stash.activitiesTotalCount
           };
         }
 

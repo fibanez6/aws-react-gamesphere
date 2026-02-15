@@ -4,12 +4,14 @@ import { StatsGrid } from '../components/dashboard/StatsSummaryCard';
 import TopGameHighlight from '../components/dashboard/TopGameHighlight';
 import { useAuth } from '../context/AuthContext';
 import { mockGames } from '../data/mockData';
+import { useFriends } from '../hooks/useFriends';
 import { useRecentActivities, useUserStats } from '../hooks/useUserStats';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { stats, isLoading: statsLoading } = useUserStats(user?.id || '');
   const { activities, isLoading: activitiesLoading } = useRecentActivities(user?.id || '', 5);
+  const { onlineFriends } = useFriends();
 
   // Get the most played game this week (mock)
   const topGame = mockGames[0];
@@ -63,28 +65,25 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold mb-4">Quick Overview</h3>
           <div className="grid grid-cols-2 gap-4">
             <QuickStatItem
-              label="Games This Week"
-              value={stats ? '5' : '-'}
+              label="Games Owned"
+              value={stats?.gamesOwned?.toString() ?? '-'}
               icon="🎮"
-              trend="+2"
             />
             <QuickStatItem
               label="Achievements"
-              value={stats ? '3' : '-'}
+              value={stats?.achievementsUnlocked?.toString() ?? '-'}
               icon="🏆"
-              trend="+3"
             />
             <QuickStatItem
               label="Friends Online"
-              value="4"
+              value={onlineFriends.length.toString()}
               icon="👥"
               isLive
             />
             <QuickStatItem
-              label="Messages"
-              value="12"
-              icon="💬"
-              trend="new"
+              label="Win Rate"
+              value={stats ? `${Math.round((stats.winRate || 0) * 100)}%` : '-'}
+              icon="📊"
             />
           </div>
         </div>
