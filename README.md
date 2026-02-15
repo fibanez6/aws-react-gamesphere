@@ -115,6 +115,23 @@ gamesphere/
 | `npm run build` | Build for production |
 | `npm run preview` | Preview production build |
 | `npm run lint` | Run ESLint |
+| `npm run seed:cognito` | Create Cognito user only |
+| `npm run seed:data -- --cognito-user-id=<id>` | Seed data with specific user ID |
+| `npm run seed` | Runs both scripts (creates user, then seeds data with that ID) |
+
+## Seed Data
+To seed the database with sample data, you can use the following commands:
+
+```bash
+# Run both steps automatically
+npm run seed
+
+# Or run separately
+node scripts/seed-cognito-user.js
+# Then use the output ID:
+node scripts/seed-data.js --cognito-user-id=<user-id-from-above>
+```
+
 
 ## 🔧 Configuration
 

@@ -7,14 +7,15 @@
  * Can also use AppSync GraphQL mutations if configured.
  * 
  * Usage:
- *   node scripts/seed-data.js [--mode=dynamodb|graphql] [--clear]
- *   AWS_PROFILE=bjss-cli-role npm run seed
+ *   node scripts/seed-data.js --cognito-user-id=<user-id> [--mode=dynamodb|graphql] [--clear]
+ *   AWS_PROFILE=bjss-cli-role npm run seed:data -- --cognito-user-id=<user-id>
  * 
  * Options:
- *   --mode=dynamodb   Use DynamoDB directly (default)
- *   --mode=graphql    Use AppSync GraphQL mutations
- *   --clear           Clear existing data before seeding
- *   --tables=users,games  Seed specific tables only
+ *   --cognito-user-id=<id>  The Cognito user ID (sub) from seed-cognito-user.js (required)
+ *   --mode=dynamodb         Use DynamoDB directly (default)
+ *   --mode=graphql          Use AppSync GraphQL mutations
+ *   --clear                 Clear existing data before seeding
+ *   --tables=users,games    Seed specific tables only
  * 
  * Environment variables (from .env or AWS profile):
  *   AWS_REGION
@@ -24,12 +25,6 @@
  *   APPSYNC_API_KEY (required for graphql mode)
  */
 
-import {
-  AdminCreateUserCommand,
-  AdminSetUserPasswordCommand,
-  CognitoIdentityProviderClient,
-  UsernameExistsException
-} from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { fromIni } from '@aws-sdk/credential-provider-ini';
 import {
@@ -78,7 +73,7 @@ const profileHasSessionToken = (profile) => {
 const config = {
   region: process.env.AWS_REGION || process.env.VITE_AWS_REGION || 'ap-southeast-2',
   tablePrefix: `${process.env.DYNAMODB_TABLE_PREFIX || 'fi-gamesphere'}-dev`,
-  userPoolId: process.env.COGNITO_USER_POOL_ID || process.env.VITE_COGNITO_USER_POOL_ID,
+  cognitoUserId: null,
   mode: 'dynamodb',
   clear: false,
   tables: null, // null = all tables
@@ -92,14 +87,27 @@ process.argv.slice(2).forEach(arg => {
     config.clear = true;
   } else if (arg.startsWith('--tables=')) {
     config.tables = arg.split('=')[1].split(',');
+  } else if (arg.startsWith('--cognito-user-id=')) {
+    config.cognitoUserId = arg.split('=')[1];
   }
 });
+
+// Validate required parameters
+if (!config.cognitoUserId) {
+  console.error('❌ Error: --cognito-user-id parameter is required');
+  console.error('');
+  console.error('Usage:');
+  console.error('  node scripts/seed-data.js --cognito-user-id=<user-id>');
+  console.error('');
+  console.error('To get the Cognito user ID, first run:');
+  console.error('  node scripts/seed-cognito-user.js');
+  process.exit(1);
+}
 
 // ============================================
 // Demo Data (matching mockData.ts)
 // ============================================
-let cognitoUserId = '295e4428-c051-703e-e8f1-959ef06bca21'
-
+const cognitoUserId = config.cognitoUserId;
 
 const users = [
     {
@@ -384,11 +392,14 @@ const achievements = [
 ];
 
 const activities = [
-  { id: 'act_001', PK: 'USER#user_001', SK: `ACTIVITY#${new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()}`, type: 'game_played', userId: 'user_001', username: 'ShadowBlade', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', description: 'You played Elden Ring', gameId: 'game_001', gameName: 'Elden Ring', duration: 120, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), GSI1PK: 'ACTIVITIES', GSI1SK: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-  { id: 'act_002', PK: 'USER#friend_001', SK: `ACTIVITY#${new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()}`, type: 'achievement_unlocked', userId: 'friend_001', username: 'NightHawk', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk', description: 'NightHawk unlocked "Dragon Slayer"', achievementId: 'ach_007', achievementName: 'Dragon Slayer', gameName: 'Elden Ring', createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), GSI1PK: 'ACTIVITIES', GSI1SK: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() },
-  { id: 'act_003', PK: 'USER#friend_002', SK: `ACTIVITY#${new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()}`, type: 'level_up', userId: 'friend_002', username: 'PixelQueen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen', description: 'PixelQueen reached Level 55', newLevel: 55, createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), GSI1PK: 'ACTIVITIES', GSI1SK: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString() },
-  { id: 'act_004', PK: 'USER#friend_004', SK: `ACTIVITY#${new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()}`, type: 'game_played', userId: 'friend_004', username: 'StormRider', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider', description: 'StormRider played Valorant for 3 hours', gameId: 'game_003', gameName: 'Valorant', duration: 180, createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), GSI1PK: 'ACTIVITIES', GSI1SK: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString() },
-  { id: 'act_005', PK: 'USER#user_001', SK: `ACTIVITY#${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}`, type: 'rank_up', userId: 'user_001', username: 'ShadowBlade', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', description: 'You reached Diamond rank!', newRank: 'Diamond', gameName: 'Valorant', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), GSI1PK: 'ACTIVITIES', GSI1SK: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_001', type: 'ACHIEVEMENT_UNLOCKED', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'Achievement Unlocked', description: 'Unlocked achievement: First Blood', gameId: 'game_003', gameName: 'Valorant', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_002', type: 'RANK_UP', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'Level Up', description: 'Reached level 42', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_003', type: 'RANK_UP', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'Rank Promotion', description: 'Promoted to Diamond rank', createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_004', type: 'GAME_ENDED', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'Game Session', description: 'Played Elden Ring for 3 hours', gameId: 'game_001', gameName: 'Elden Ring', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_005', type: 'ACHIEVEMENT_UNLOCKED', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'Achievement Unlocked', description: 'Unlocked achievement: Elden Lord', gameId: 'game_001', gameName: 'Elden Ring', createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_006', type: 'GAME_ENDED', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'Game Session', description: 'Played Valorant for 2 hours', gameId: 'game_003', gameName: 'Valorant', createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_007', type: 'FRIEND_ADDED', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'New Friend', description: 'Became friends with NightHawk', createdAt: new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString() },
+  { id: 'act_008', type: 'ACHIEVEMENT_UNLOCKED', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', title: 'Achievement Unlocked', description: 'Unlocked achievement: Sharpshooter', gameId: 'game_003', gameName: 'Valorant', createdAt: new Date(Date.now() - 120 * 60 * 60 * 1000).toISOString() },
 ];
 
 const liveSessions = [
@@ -418,7 +429,7 @@ const tableData = {
   friendships: { tableName: 'friends', data: friendships, keyField: 'userId' },
 //   gameStats: { tableName: 'gameStats', data: gameStats, keyField: 'id' },
 //   achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
-//   activities: { tableName: 'activities', data: activities, keyField: 'id' },
+  activities: { tableName: 'activities', data: activities, keyField: 'id' },
 //   liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
 //   leaderboard: { tableName: 'leaderboard', data: leaderboard, keyField: 'id' },
 };
@@ -532,6 +543,7 @@ async function seedDynamoDB() {
   console.log('\n🚀 Starting DynamoDB seed...');
   console.log(`   Region: ${config.region}`);
   console.log(`   Table Prefix: ${config.tablePrefix}`);
+  console.log(`   Cognito User ID: ${config.cognitoUserId}`);
   
   const docClient = createDynamoDBClient();
   
@@ -568,6 +580,7 @@ async function seedGraphQL() {
   }
 
   console.log(`   Endpoint: ${endpoint}`);
+  console.log(`   Cognito User ID: ${config.cognitoUserId}`);
 
   // GraphQL mutations for seeding
   const mutations = {
@@ -621,104 +634,6 @@ async function seedGraphQL() {
 }
 
 // ============================================
-// Cognito User Seeding
-// ============================================
-
-const createCognitoClient = () => {
-  const clientConfig = {
-    region: config.region,
-  };
-
-  if (process.env.AWS_PROFILE && !process.env.AWS_ACCESS_KEY_ID) {
-    const profile = process.env.AWS_PROFILE;
-    const hasSessionToken = profileHasSessionToken(profile);
-    clientConfig.credentials = hasSessionToken
-      ? fromIni({ profile })
-      : fromIni({ profile, mfaCodeProvider: getMfaCode });
-  }
-
-  return new CognitoIdentityProviderClient(clientConfig);
-};
-
-async function seedCognitoUser() {
-  console.log('\n🔐 Seeding Cognito test user...');
-  
-  if (!config.userPoolId) {
-    console.log('   ⚠️  COGNITO_USER_POOL_ID not set, skipping Cognito user creation');
-    return null;
-  }
-
-  const cognitoClient = createCognitoClient();
-  const testEmail = 'test@test.com';
-  const testPassword = 'Qwer!234';
-
-  try {
-    // Create the user
-    const createResponse = await cognitoClient.send(new AdminCreateUserCommand({
-      UserPoolId: config.userPoolId,
-      Username: testEmail,
-      UserAttributes: [
-        { Name: 'email', Value: testEmail },
-        { Name: 'email_verified', Value: 'true' },
-      ],
-      MessageAction: 'SUPPRESS', // Don't send welcome email
-    }));
-    console.log(`   ✓ Created Cognito user: ${testEmail}`);
-
-    // Set permanent password (bypasses temporary password flow)
-    await cognitoClient.send(new AdminSetUserPasswordCommand({
-      UserPoolId: config.userPoolId,
-      Username: testEmail,
-      Password: testPassword,
-      Permanent: true,
-    }));
-    console.log(`   ✓ Set permanent password for: ${testEmail}`);
-
-    // Get the user's sub (userId) from the create response
-    const subAttribute = createResponse.User?.Attributes?.find(attr => attr.Name === 'sub');
-    const userId = subAttribute?.Value;
-    console.log(`   ✓ User ID (sub): ${userId}`);
-    return userId;
-
-  } catch (error) {
-    if (error instanceof UsernameExistsException || error.name === 'UsernameExistsException') {
-      console.log(`   ℹ️  User ${testEmail} already exists, skipping creation`);
-      
-      // Still try to set the password in case it needs updating
-      try {
-        await cognitoClient.send(new AdminSetUserPasswordCommand({
-          UserPoolId: config.userPoolId,
-          Username: testEmail,
-          Password: testPassword,
-          Permanent: true,
-        }));
-        console.log(`   ✓ Updated password for existing user: ${testEmail}`);
-      } catch (pwError) {
-        console.log(`   ⚠️  Could not update password: ${pwError.message}`);
-      }
-
-      // Get the existing user's sub (userId)
-      try {
-        const getUserResponse = await cognitoClient.send(new AdminGetUserCommand({
-          UserPoolId: config.userPoolId,
-          Username: testEmail,
-        }));
-        const subAttribute = getUserResponse.UserAttributes?.find(attr => attr.Name === 'sub');
-        const userId = subAttribute?.Value;
-        console.log(`   ✓ User ID (sub): ${userId}`);
-        return userId;
-      } catch (getError) {
-        console.log(`   ⚠️  Could not get user ID: ${getError.message}`);
-        return null;
-      }
-    } else {
-      console.error(`   ✗ Failed to create Cognito user: ${error.message}`);
-      return null;
-    }
-  }
-}
-
-// ============================================
 // Main Execution
 // ============================================
 
@@ -729,11 +644,9 @@ async function main() {
   console.log(`  Mode: ${config.mode}`);
   console.log(`  Clear existing data: ${config.clear}`);
   console.log(`  Tables: ${config.tables ? config.tables.join(', ') : 'all'}`);
+  console.log(`  Cognito User ID: ${config.cognitoUserId}`);
 
   try {
-    // Seed Cognito test user
-    cognitoUserId = await seedCognitoUser();
-
     if (config.mode === 'graphql') {
       await seedGraphQL();
     } else {

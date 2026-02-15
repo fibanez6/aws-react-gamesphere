@@ -280,9 +280,9 @@ Resources:
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
-        - AttributeName: oderId
+        - AttributeName: userId
           AttributeType: S
-        - AttributeName: timestamp
+        - AttributeName: createdAt
           AttributeType: S
         - AttributeName: type
           AttributeType: S
@@ -290,19 +290,19 @@ Resources:
         - AttributeName: id
           KeyType: HASH
       GlobalSecondaryIndexes:
-        - IndexName: userId-timestamp-index
+        - IndexName: userId-createdAt-index
           KeySchema:
-            - AttributeName: oderId
+            - AttributeName: userId
               KeyType: HASH
-            - AttributeName: timestamp
+            - AttributeName: createdAt
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
-        - IndexName: type-timestamp-index
+        - IndexName: type-createdAt-index
           KeySchema:
             - AttributeName: type
               KeyType: HASH
-            - AttributeName: timestamp
+            - AttributeName: createdAt
               KeyType: RANGE
           Projection:
             ProjectionType: ALL

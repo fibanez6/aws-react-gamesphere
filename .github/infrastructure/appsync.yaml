@@ -210,46 +210,46 @@ Resources:
           getPlayerStats(userId: ID!): PlayerStats
           # getPlayerProfile(userId: ID!): PlayerProfile
           
-          # Friends Queries
+          # Friends Queries 
           getFriends(userId: ID!): [Friend!]!
           # getFriendRequests(userId: ID!): [FriendRequest!]!
 
-          # Live Sessions
+          # Live Sessions # TODO
           getLiveSessions(friendsOnly: Boolean): [GameSession!]!
           # getUserSession(userId: ID!): GameSession
           
-          # Achievement Sessions
+          # Achievement Sessions # TODO
           getAchievements(userId: ID!): [Achievement]!
 
-          # Activity Queries
+          # Activity Queries # TODO
           getRecentActivities(userId: ID!, limit: Int): [Activity!]!
           # getFriendActivities(userId: ID!, limit: Int): [Activity!]!
           
-          # Leaderboard Queries
+          # Leaderboard Queries # TODO
           getLeaderboard(filter: LeaderboardFilterInput): [LeaderboardEntry!]!
           # getUserRank(userId: ID!, type: LeaderboardType!): LeaderboardEntry
         }
 
         type Mutation {
-          # User Mutations
+          # User Mutations # TODO
           createUser(input: CreateUserInput!): User!
           updateUser(input: UpdateUserInput!): User!
           updateUserStatus(status: UserStatus!): User!
           
-          # Friend Mutations
+          # Friend Mutations # TODO
           sendFriendRequest(toUserId: ID!): FriendRequest!
           respondToFriendRequest(requestId: ID!, accept: Boolean!): Friend
           removeFriend(friendId: ID!): Boolean!
           
-          # Session Mutations
+          # Session Mutations # TODO
           startGameSession(gameId: ID!): GameSession!
           endGameSession(sessionId: ID!): GameSession!
           updateGameSession(sessionId: ID!, input: UpdateSessionInput!): GameSession!
           
-          # Activity Mutations
+          # Activity Mutations # TODO
           createActivity(input: CreateActivityInput!): Activity!
           
-          # Leaderboard Mutations
+          # Leaderboard Mutations # TODO
           updateLeaderboard(type: LeaderboardType!, entries: [LeaderboardEntryInput!]!): LeaderboardUpdateEvent!
         }
 
@@ -381,7 +381,7 @@ Resources:
           gameId: ID
           gameName: String
           gameCover: String
-          timestamp: AWSDateTime!
+          createdAt: AWSDateTime!
         }
 
         type GameSession {
@@ -941,6 +941,7 @@ Resources:
           const limit = ctx.args.limit || 20;
           return {
             operation: 'Query',
+            index: 'userId-createdAt-index',
             query: {
               expression: 'userId = :userId',
               expressionValues: util.dynamodb.toMapValues({ ':userId': ctx.args.userId }),

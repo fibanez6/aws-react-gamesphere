@@ -9,9 +9,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "seed": "node scripts/seed-data.js",
-    "seed:clear": "node scripts/seed-data.js --clear",
-    "seed:graphql": "node scripts/seed-data.js --mode=graphql"
+    "seed:cognito": "node scripts/seed-cognito-user.js",
+    "seed:data": "node scripts/seed-data.js",
+    "seed:data:clear": "node scripts/seed-data.js --clear",
+    "seed:graphql": "node scripts/seed-data.js --mode=graphql",
+    "seed": "node -e \"const{execSync}=require('child_process');const id=execSync('node scripts/seed-cognito-user.js',{encoding:'utf8'}).trim().split('\\n').pop();execSync('node scripts/seed-data.js --cognito-user-id='+id,{stdio:'inherit'})\""
   },
   "dependencies": {
     "@aws-amplify/api": "^6.0.0",
