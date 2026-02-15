@@ -76,6 +76,38 @@ export const getRecentActivities = /* GraphQL */ `
   }
 `;
 
+export const getPlayerDashboard = /* GraphQL */ `
+  query GetPlayerProfile($userId: ID!) {
+    getPlayerProfile(userId: $userId) {
+      user {
+        avatar
+        createdAt
+        email
+        id
+        level
+        rank
+        status
+        updatedAt
+        username
+        xp
+      }
+      recentActivity {
+        avatar
+        createdAt
+        description
+        gameCover
+        gameId
+        gameName
+        id
+        title
+        type
+        userId
+        username
+      }
+    }
+  }
+`;
+
 export const getPlayerProfile = /* GraphQL */ `
   query GetPlayerProfile($userId: ID!) {
     getPlayerProfile(userId: $userId) {

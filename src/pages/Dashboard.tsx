@@ -5,13 +5,16 @@ import TopGameHighlight from '../components/dashboard/TopGameHighlight';
 import { useAuth } from '../context/AuthContext';
 import { mockGames } from '../data/mockData';
 import { useFriends } from '../hooks/useFriends';
-import { useRecentActivities, useUserStats } from '../hooks/useUserStats';
+import { usePlayerProfile } from '../hooks/usePlayerProfile';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { stats, isLoading: statsLoading } = useUserStats(user?.id || '');
-  const { activities, isLoading: activitiesLoading } = useRecentActivities(user?.id || '', 5);
   const { onlineFriends } = useFriends();
+
+  const { profile, isLoading } = usePlayerProfile(user?.id || '');
+  const stats = profile?.stats;
+  const activities = profile?.recentActivity || [];
+
 
   // Get the most played game this week (mock)
   const topGame = mockGames[0];
@@ -34,7 +37,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <StatsGrid stats={stats} isLoading={statsLoading} />
+      <StatsGrid stats={stats} isLoading={isLoading} />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -42,7 +45,7 @@ export default function Dashboard() {
         <div className="lg:col-span-2">
           <PerformanceTrendChart
             data={stats?.weeklyPlaytime || [0, 0, 0, 0, 0, 0, 0]}
-            isLoading={statsLoading}
+            isLoading={isLoading}
           />
         </div>
 
@@ -51,14 +54,14 @@ export default function Dashboard() {
           <TopGameHighlight
             game={topGame}
             hoursThisWeek={Math.round(hoursThisWeek)}
-            isLoading={statsLoading}
+            isLoading={isLoading}
           />
         </div>
       </div>
 
       {/* Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentActivityFeed activities={activities} isLoading={activitiesLoading} />
+        <RecentActivityFeed activities={activities} isLoading={isLoading} />
 
         {/* Quick Stats */}
         <div className="card">

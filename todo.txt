@@ -2,5 +2,3 @@ fix getLeaderboard
 fix getLiveSessions
 fix Mutations
 fix Subscriptions
-
-CHECK if Dashboard could call GetPlayerProfile
