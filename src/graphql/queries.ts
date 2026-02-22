@@ -99,14 +99,10 @@ const GameFields = /* GraphQL */ `
 // User Queries
 // ============================================
 
-export const getCurrentUser = /* GraphQL */ `
-  query GetCurrentUser($userId: ID!) {
-    getUser(userId: $userId) {
+export const getUser = /* GraphQL */ `
+  query GetUser($id: ID!) {
+    getUser(id: $id) {
       ...UserCoreFields
-      xpToNextLevel
-      isOnline
-      isPublicProfile
-      lastActiveAt
     }
   }
   ${UserCoreFields}

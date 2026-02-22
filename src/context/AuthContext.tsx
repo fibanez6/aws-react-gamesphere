@@ -3,6 +3,7 @@ import envConfig, { debugError, debugLog } from '../config/environment';
 import authService from '../services/authService';
 import { cognitoAuthService } from '../services/cognitoAuthService';
 import { User } from '../types';
+import userService from '@/services/userService';
 
 interface AuthContextType {
   user: User | null;
@@ -57,6 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const authenticatedUser = await authService.signIn(email, password);
+      const userData = await userService.getUser(authenticatedUser.id);
+      authenticatedUser.username = userData?.username || authenticatedUser.username;
       setUser(authenticatedUser);
       setNeedsNewPassword(false);
       debugLog('AuthContext: Login successful:', authenticatedUser.username);

@@ -4,7 +4,7 @@
 import { generateClient } from 'aws-amplify/api';
 import { debugError, debugLog } from '../../config/environment';
 import {
-  getCurrentUser,
+  getUser,
   getFriends,
   getPlayerProfile,
   getRecentActivities,
@@ -31,12 +31,28 @@ export const graphqlUserService = {
       const client = getClient();
       
       const result = await client.graphql({
-        query: getCurrentUser,
+        query: getUser,
         variables: { userId: id },
       });
-      return (result as any).data?.getCurrentUser || null;
+      return (result as any).data?.getUser || null;
     } catch (error) {
       debugError('GraphQL: Error getting current user', error);
+      throw error;
+    }
+  },
+
+  async getUser(userId: string): Promise<User | null> {
+    debugLog('GraphQL: Getting user', { userId });
+    try {
+      const client = getClient();
+      
+      const result = await client.graphql({
+        query: getUser,
+        variables: { id: userId },
+      });
+      return (result as any).data?.getUser || null;
+    } catch (error) {
+      debugError('GraphQL: Error getting user', error);
       throw error;
     }
   },

@@ -22,7 +22,7 @@ import type { PaginatedResponse, PlayerProfile } from '../userService.types.ts';
 const mockDelay = () => new Promise(resolve => setTimeout(resolve, envConfig.apiTimeout));
 
 export const mockUserService = {
-  async getCurrentUser(): Promise<User | null> {
+  async getUser(): Promise<User | null> {
     debugLog('Mock: Getting current user');
     await mockDelay();
     return mockCurrentUser;
