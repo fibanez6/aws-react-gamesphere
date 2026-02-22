@@ -406,9 +406,15 @@ const activities = [
 ];
 
 const liveSessions = [
-  { id: 'session_001', PK: 'SESSION#session_001', SK: 'LIVE', userId: 'friend_001', username: 'NightHawk', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk', gameId: 'game_001', gameName: 'Elden Ring', gameImage: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300', startedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(), duration: 45, isLive: true, GSI1PK: 'LIVE_SESSIONS', GSI1SK: new Date(Date.now() - 45 * 60 * 1000).toISOString() },
-  { id: 'session_002', PK: 'SESSION#session_002', SK: 'LIVE', userId: 'friend_004', username: 'StormRider', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider', gameId: 'game_003', gameName: 'Valorant', gameImage: 'https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?w=300', startedAt: new Date(Date.now() - 120 * 60 * 1000).toISOString(), duration: 120, isLive: true, GSI1PK: 'LIVE_SESSIONS', GSI1SK: new Date(Date.now() - 120 * 60 * 1000).toISOString() },
-  { id: 'session_003', PK: 'SESSION#session_003', SK: 'LIVE', userId: 'friend_002', username: 'PixelQueen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen', gameId: 'game_005', gameName: 'Minecraft', gameImage: 'https://images.unsplash.com/photo-1587573089734-09cb69c0f2b4?w=300', startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), duration: 30, isLive: true, GSI1PK: 'LIVE_SESSIONS', GSI1SK: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+  // Sessions for cognitoUserId's friends
+  { id: 'session_001', userId: 'friend_001', username: 'NightHawk', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk', gameId: 'game_001', gameName: 'Elden Ring', gameCover: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300', startTime: new Date(Date.now() - 45 * 60 * 1000).toISOString(), duration: 45, isActive: 'true' },
+  { id: 'session_002', userId: 'friend_004', username: 'StormRider', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider', gameId: 'game_003', gameName: 'Valorant', gameCover: 'https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?w=300', startTime: new Date(Date.now() - 120 * 60 * 1000).toISOString(), duration: 120, isActive: 'true' },
+  { id: 'session_003', userId: 'friend_002', username: 'PixelQueen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen', gameId: 'game_005', gameName: 'Minecraft', gameCover: 'https://images.unsplash.com/photo-1587573089734-09cb69c0f2b4?w=300', startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(), duration: 30, isActive: 'true' },
+  { id: 'session_004', userId: cognitoUserId, username: 'testuser', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', gameId: 'game_001', gameName: 'Elden Ring', gameCover: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300', startTime: new Date(Date.now() - 10 * 60 * 1000).toISOString(), duration: 10, isActive: 'true' },
+  { id: 'session_005', userId: 'friend_003', username: 'ThunderBolt', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ThunderBolt', gameId: 'game_004', gameName: 'League of Legends', gameCover: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=300', startTime: new Date(Date.now() - 35 * 60 * 1000).toISOString(), duration: 35, isActive: 'true' },
+  { id: 'session_006', userId: 'friend_004', username: 'StormRider', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider', gameId: 'game_005', gameName: 'Minecraft', gameCover: 'https://images.unsplash.com/photo-1587573089734-09cb69c0f2b4?w=300', startTime: new Date(Date.now() - 20 * 60 * 1000).toISOString(), duration: 20, isActive: 'true' },
+  { id: 'session_007', userId: 'friend_005', username: 'CyberWolf', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CyberWolf', gameId: 'game_006', gameName: 'Fortnite', gameCover: 'https://images.unsplash.com/photo-1589241062272-c0a000072dfa?w=300', startTime: new Date(Date.now() - 50 * 60 * 1000).toISOString(), duration: 50, isActive: 'true' },
+  { id: 'session_008', userId: 'friend_006', username: 'DragonSlayer', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer', gameId: 'game_001', gameName: 'Elden Ring', gameCover: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300', startTime: new Date(Date.now() - 40 * 60 * 1000).toISOString(), duration: 40, isActive: 'true' },
 ];
 
 // DynamoDB schema: pk = "TYPE#METRIC" (GSI partition key), score (GSI sort key), id (table PK)
@@ -536,7 +542,7 @@ const tableData = {
   gameStats: { tableName: 'game-stats', data: gameStats, keyField: 'userId', sortKeyField: 'gameId' },
   achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
   activities: { tableName: 'activities', data: activities, keyField: 'id' },
-//   liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
+  liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
   leaderboard: { tableName: 'leaderboard', data: leaderboard, keyField: 'id' },
 };
 

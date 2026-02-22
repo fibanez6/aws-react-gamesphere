@@ -14,20 +14,23 @@ export const graphqlSessionService = {
   async getLiveSessions(
     filter?: { friendsOnly?: boolean; gameId?: string },
     limit = 10,
-    nextToken?: string
+    _nextToken?: string
   ): Promise<PaginatedResponse<GameSession>> {
     debugLog('GraphQL: Getting live sessions', { filter, limit });
     try {
       const client = getClient();
       const result = await client.graphql({
         query: getLiveSessions,
-        variables: { filter, limit, nextToken },
+        variables: { friendsOnly: filter?.friendsOnly },
       });
-      const data = (result as any).data?.getLiveSessions;
+      const items = (result as any).data?.getLiveSessions || [];
+      // Apply client-side gameId filter if needed
+      const filtered = filter?.gameId
+        ? items.filter((s: GameSession) => s.gameId === filter.gameId)
+        : items;
       return {
-        items: data?.items || [],
-        nextToken: data?.nextToken,
-        totalCount: data?.totalCount,
+        items: filtered.slice(0, limit),
+        totalCount: filtered.length,
       };
     } catch (error) {
       debugError('GraphQL: Error getting live sessions', error);

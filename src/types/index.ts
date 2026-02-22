@@ -62,10 +62,10 @@ export interface GameSession {
   avatar: string;
   gameId: string;
   gameName: string;
-  gameImage: string;
-  startedAt: string;
+  gameCover: string;
+  startTime: string;
   duration: number;
-  isLive: boolean;
+  isActive: boolean;
 }
 
 // Friend Types

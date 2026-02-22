@@ -1,4 +1,4 @@
-fix getLeaderboard - friend and game
+fix getLeaderboard - friend
 fix getLiveSessions
 fix Mutations
 fix Subscriptions

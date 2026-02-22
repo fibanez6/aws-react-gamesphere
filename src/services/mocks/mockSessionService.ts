@@ -18,7 +18,7 @@ export const mockSessionService = {
     debugLog('Mock: Getting live sessions', { filter, limit });
     await mockDelay();
 
-    let sessions = mockLiveSessions.filter(s => s.isLive);
+    let sessions = mockLiveSessions.filter(s => s.isActive);
     if (filter?.gameId) {
       sessions = sessions.filter(s => s.gameId === filter.gameId);
     }

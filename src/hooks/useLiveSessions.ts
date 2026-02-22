@@ -78,22 +78,22 @@ export function useLiveSessionSubscription(
 }
 
 // Hook to calculate live session duration
-export function useSessionTimer(startedAt: string): number {
+export function useSessionTimer(startTime: string): number {
   const [duration, setDuration] = useState(() => {
-    const start = new Date(startedAt).getTime();
+    const start = new Date(startTime).getTime();
     const now = Date.now();
     return Math.floor((now - start) / 1000 / 60);
   });
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const start = new Date(startedAt).getTime();
+      const start = new Date(startTime).getTime();
       const now = Date.now();
       setDuration(Math.floor((now - start) / 1000 / 60));
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [startedAt]);
+  }, [startTime]);
 
   return duration;
 }

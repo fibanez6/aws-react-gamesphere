@@ -8,7 +8,7 @@ interface LiveSessionBannerProps {
 }
 
 export default function LiveSessionBanner({ sessions }: LiveSessionBannerProps) {
-  const liveCount = sessions.filter(s => s.isLive).length;
+  const liveCount = sessions.filter(s => s.isActive).length;
 
   if (liveCount === 0) {
     return null;
@@ -105,13 +105,13 @@ export function CurrentlyPlayingList({ sessions, isLoading }: CurrentlyPlayingLi
 }
 
 function SessionCard({ session }: { session: GameSession }) {
-  const duration = useSessionTimer(session.startedAt);
+  const duration = useSessionTimer(session.startTime);
 
   return (
     <div className="flex items-center gap-4 p-3 bg-dark-700/30 rounded-lg hover:bg-dark-700/50 transition-colors">
       {/* Game Image */}
       <img
-        src={session.gameImage}
+        src={session.gameCover}
         alt={session.gameName}
         className="w-16 h-16 rounded-lg object-cover"
       />

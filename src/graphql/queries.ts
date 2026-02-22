@@ -267,22 +267,18 @@ export const getLeaderboard = /* GraphQL */ `
 // ============================================
 
 export const getLiveSessions = /* GraphQL */ `
-  query GetLiveSessions($filter: LiveSessionFilterInput, $limit: Int, $nextToken: String) {
-    getLiveSessions(filter: $filter, limit: $limit, nextToken: $nextToken) {
-      items {
-        id
-        userId
-        username
-        avatar
-        gameId
-        gameName
-        gameImage
-        startedAt
-        duration
-        isLive
-      }
-      nextToken
-      totalCount
+  query GetLiveSessions($friendsOnly: Boolean) {
+    getLiveSessions(friendsOnly: $friendsOnly) {
+      id
+      userId
+      username
+      avatar
+      gameId
+      gameName
+      gameCover
+      startTime
+      duration
+      isActive
     }
   }
 `;

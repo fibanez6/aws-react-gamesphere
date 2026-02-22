@@ -1134,7 +1134,10 @@ Resources:
         }
         
         export function response(ctx) {
-          return ctx.result.items;
+          return ctx.result.items.map(item => ({
+            ...item,
+            isActive: item.isActive === 'true',
+          }));
         }
 
   GetAchievementsResolver:
