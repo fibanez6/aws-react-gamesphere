@@ -23,13 +23,6 @@ export default function LeaderboardFilters({
     { value: 'winrate', label: 'Win Rate' },
   ];
 
-  const timeRanges = [
-    { value: '24h', label: '24h' },
-    { value: '7d', label: '7 Days' },
-    { value: '30d', label: '30 Days' },
-    { value: 'all', label: 'All Time' },
-  ];
-
   return (
     <div className="space-y-4 mb-6">
       {/* Type Selector */}
@@ -70,32 +63,6 @@ export default function LeaderboardFilters({
                   )}
                 >
                   {metric.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Time Range Selector */}
-          <div className="flex-shrink-0">
-            <label className="block text-xs text-dark-400 mb-2">Time Range</label>
-            <div className="flex gap-1">
-              {timeRanges.map((range) => (
-                <button
-                  key={range.value}
-                  onClick={() =>
-                    onFilterChange({
-                      ...filter,
-                      timeRange: range.value as LeaderboardFilter['timeRange'],
-                    })
-                  }
-                  className={clsx(
-                    'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
-                    filter.timeRange === range.value
-                      ? 'bg-primary-600/20 text-primary-400 ring-1 ring-primary-500/50'
-                      : 'bg-dark-700/50 text-dark-400 hover:text-white'
-                  )}
-                >
-                  {range.label}
                 </button>
               ))}
             </div>

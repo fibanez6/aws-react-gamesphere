@@ -121,11 +121,10 @@ export interface LeaderboardEntry {
   userId: string;
   username: string;
   avatar: string;
-  level: number;
   score: number;
-  metric: string;
-  change: 'up' | 'down' | 'same';
-  changeAmount: number;
+  previousRank: number | null;
+  change: number | null;
+  userRank: string;
 }
 
 export type LeaderboardType = 'global' | 'friends' | 'game';
@@ -135,7 +134,6 @@ export interface LeaderboardFilter {
   type: LeaderboardType;
   metric: LeaderboardMetric;
   gameId?: string;
-  timeRange?: '24h' | '7d' | '30d' | 'all';
 }
 
 // Filter Types

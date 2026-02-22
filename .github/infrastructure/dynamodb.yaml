@@ -328,24 +328,13 @@ Resources:
       AttributeDefinitions:
         - AttributeName: pk
           AttributeType: S
-        - AttributeName: sk
-          AttributeType: S
         - AttributeName: score
           AttributeType: N
       KeySchema:
         - AttributeName: pk
           KeyType: HASH
-        - AttributeName: sk
+        - AttributeName: score
           KeyType: RANGE
-      GlobalSecondaryIndexes:
-        - IndexName: score-index
-          KeySchema:
-            - AttributeName: pk
-              KeyType: HASH
-            - AttributeName: score
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
       SSESpecification:
         SSEEnabled: true
       Tags:

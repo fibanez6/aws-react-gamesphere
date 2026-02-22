@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
-PROJECT_NAME="fi-gamesphere"
+PROJECT_NAME="gamesphere"
 ENVIRONMENT="${1:-dev}"
 REGION="${2:-ap-southeast-2}"
 STACK_NAME="${PROJECT_NAME}-${ENVIRONMENT}"

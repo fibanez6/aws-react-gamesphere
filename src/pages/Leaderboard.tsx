@@ -9,7 +9,6 @@ export default function Leaderboard() {
   const [filter, setFilter] = useState<LeaderboardFilter>({
     type: 'global',
     metric: 'hours',
-    timeRange: 'all',
   });
 
   const { entries, isLoading, userRank } = useLeaderboard(filter);

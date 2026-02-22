@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { mockLiveSessions } from '../data/mockData';
+import sessionService from '../services/sessionService';
 import { GameSession, LiveSessionEvent } from '../types';
+import { debugLog } from '@/config/environment';
 
 interface UseLiveSessionsResult {
   sessions: GameSession[];
@@ -18,18 +20,13 @@ export function useLiveSessions(friendsOnly = false): UseLiveSessionsResult {
     setIsLoading(true);
     setError(null);
     try {
-      // In production:
-      // const client = generateClient();
-      // const result = await client.graphql({
-      //   query: getLiveSessions,
-      //   variables: { filter: { friendsOnly } }
-      // });
-      // setSessions(result.data.getLiveSessions.items);
-
-      // For development, use mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setSessions(mockLiveSessions);
+      debugLog('UseLiveSessions: Fetching live sessions', { friendsOnly });
+      const result = await sessionService.getLiveSessions(
+        { friendsOnly },
+      );
+      setSessions(result.items);
     } catch (err) {
+      debugLog('UseLiveSessions: Error fetching live sessions:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch live sessions'));
     } finally {
       setIsLoading(false);

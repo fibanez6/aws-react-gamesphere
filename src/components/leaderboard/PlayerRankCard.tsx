@@ -31,7 +31,7 @@ export default function PlayerRankCard({ entry, totalPlayers = 1000 }: PlayerRan
           />
           <div className="text-left">
             <p className="font-semibold text-lg">{entry.username}</p>
-            <p className="text-sm text-dark-400">Level {entry.level}</p>
+            <p className="text-sm text-dark-400">{entry.userRank}</p>
           </div>
         </div>
 
@@ -45,7 +45,7 @@ export default function PlayerRankCard({ entry, totalPlayers = 1000 }: PlayerRan
             <p className="text-4xl font-bold text-primary-400">
               {entry.score.toLocaleString()}
             </p>
-            <p className="text-xs text-dark-400">{entry.metric}</p>
+            <p className="text-xs text-dark-400">Score</p>
           </div>
         </div>
 
@@ -64,14 +64,14 @@ export default function PlayerRankCard({ entry, totalPlayers = 1000 }: PlayerRan
           </div>
         </div>
 
-        {entry.change !== 'same' && entry.changeAmount > 0 && (
+        {entry.change !== null && entry.change !== 0 && (
           <div className={clsx(
             'mt-4 inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium',
-            entry.change === 'up'
+            entry.change > 0
               ? 'bg-green-500/20 text-green-400'
               : 'bg-red-500/20 text-red-400'
           )}>
-            {entry.change === 'up' ? '↑' : '↓'} {entry.changeAmount} positions this week
+            {entry.change > 0 ? '↑' : '↓'} {Math.abs(entry.change)} positions this week
           </div>
         )}
       </div>

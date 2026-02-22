@@ -475,7 +475,6 @@ Resources:
         input LeaderboardFilterInput {
           type: LeaderboardType
           metric: LeaderboardMetric
-          timeRange: TimeRange
           gameId: ID
         }
 
@@ -1214,15 +1213,16 @@ Resources:
           const filter = ctx.args.filter || {};
           const type = filter.type || 'GLOBAL';
           const metric = filter.metric || 'HOURS';
+          const gameId = filter.gameId;
+          
+          // If gameId is provided, query by game name; otherwise query by metric
+          const pk = gameId ? `${type}#${gameId}` : `${type}#${metric}`;
           
           return {
             operation: 'Query',
-            index: 'score-index',
             query: {
               expression: 'pk = :pk',
-              expressionValues: util.dynamodb.toMapValues({ 
-                ':pk': `${type}#${metric}` 
-              }),
+              expressionValues: util.dynamodb.toMapValues({ ':pk': pk }),
             },
             scanIndexForward: false,
             limit: 100,

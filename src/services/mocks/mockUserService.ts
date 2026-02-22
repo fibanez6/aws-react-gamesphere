@@ -8,17 +8,11 @@ import {
   mockCurrentUser,
   mockFriends,
   mockGameStats,
-  mockGames,
-  mockLeaderboard,
-  mockLiveSessions,
   mockPlayerStats,
 } from '../../data/mockData';
 import {
   Activity,
   Friend,
-  Game,
-  GameSession,
-  LeaderboardEntry,
   PlayerStats,
   User,
 } from '../../types';
@@ -101,68 +95,6 @@ export const mockUserService = {
     return {
       items: mockFriends.slice(0, limit),
       totalCount: mockFriends.length,
-    };
-  },
-
-  async getTopGames(
-    filter?: { genre?: string; platform?: string },
-    limit = 10,
-    _nextToken?: string
-  ): Promise<PaginatedResponse<Game>> {
-    debugLog('Mock: Getting top games', { filter, limit });
-    await mockDelay();
-    
-    let games = [...mockGames];
-    if (filter?.genre) {
-      games = games.filter(g => g.genre.toLowerCase() === filter.genre?.toLowerCase());
-    }
-    if (filter?.platform) {
-      games = games.filter(g => g.platform.includes(filter.platform!));
-    }
-    
-    return {
-      items: games.slice(0, limit),
-      totalCount: games.length,
-    };
-  },
-
-  async getGameDetails(gameId: string): Promise<Game | null> {
-    debugLog('Mock: Getting game details', { gameId });
-    await mockDelay();
-    return mockGames.find(g => g.id === gameId) || null;
-  },
-
-  async getLeaderboard(
-    type: 'global' | 'friends' | 'game',
-    metric: 'xp' | 'wins' | 'playtime' | 'achievements',
-    options?: { gameId?: string; timeRange?: string; limit?: number }
-  ): Promise<PaginatedResponse<LeaderboardEntry>> {
-    debugLog('Mock: Getting leaderboard', { type, metric, options });
-    await mockDelay();
-    
-    const limit = options?.limit || 10;
-    return {
-      items: mockLeaderboard.slice(0, limit),
-      totalCount: mockLeaderboard.length,
-    };
-  },
-
-  async getLiveSessions(
-    filter?: { friendsOnly?: boolean; gameId?: string },
-    limit = 10,
-    _nextToken?: string
-  ): Promise<PaginatedResponse<GameSession>> {
-    debugLog('Mock: Getting live sessions', { filter, limit });
-    await mockDelay();
-    
-    let sessions = mockLiveSessions.filter(s => s.isLive);
-    if (filter?.gameId) {
-      sessions = sessions.filter(s => s.gameId === filter.gameId);
-    }
-    
-    return {
-      items: sessions.slice(0, limit),
-      totalCount: sessions.length,
     };
   },
 

@@ -188,6 +188,7 @@ async function main() {
     console.error('\n✅ Cognito user seeding complete!');
     console.error(`\nTo seed data, run:`);
     console.error(`  node scripts/seed-data.js --cognito-user-id=${userId}`);
+    console.error(`  node scripts/seed-data.js --cognito-user-id=${userId} --table-prefix=gamesphere-dev`);
     
   } catch (error) {
     console.error('\n❌ Seeding failed:', error.message);

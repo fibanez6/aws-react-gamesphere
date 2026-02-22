@@ -6,21 +6,14 @@ import { debugError, debugLog } from '../../config/environment';
 import {
   getCurrentUser,
   getFriends,
-  getGameDetails,
-  getLeaderboard,
-  getLiveSessions,
   getPlayerProfile,
   getRecentActivities,
   getUserStats,
-  listTopGames,
   searchUsers,
 } from '../../graphql/queries';
 import {
   Activity,
   Friend,
-  Game,
-  GameSession,
-  LeaderboardEntry,
   PlayerStats,
   User,
 } from '../../types';
@@ -123,98 +116,6 @@ export const graphqlUserService = {
       };
     } catch (error) {
       debugError('GraphQL: Error getting friends', error);
-      throw error;
-    }
-  },
-
-  async getTopGames(
-    filter?: { genre?: string; platform?: string },
-    limit = 10,
-    nextToken?: string
-  ): Promise<PaginatedResponse<Game>> {
-    debugLog('GraphQL: Getting top games', { filter, limit });
-    try {
-      const client = getClient();
-      const result = await client.graphql({
-        query: listTopGames,
-        variables: { filter, limit, nextToken },
-      });
-      const data = (result as any).data?.listTopGames;
-      return {
-        items: data?.items || [],
-        nextToken: data?.nextToken,
-        totalCount: data?.totalCount,
-      };
-    } catch (error) {
-      debugError('GraphQL: Error getting top games', error);
-      throw error;
-    }
-  },
-
-  async getGameDetails(gameId: string): Promise<Game | null> {
-    debugLog('GraphQL: Getting game details', { gameId });
-    try {
-      const client = getClient();
-      const result = await client.graphql({
-        query: getGameDetails,
-        variables: { gameId },
-      });
-      return (result as any).data?.getGameDetails || null;
-    } catch (error) {
-      debugError('GraphQL: Error getting game details', error);
-      throw error;
-    }
-  },
-
-  async getLeaderboard(
-    type: 'global' | 'friends' | 'game',
-    metric: 'xp' | 'wins' | 'playtime' | 'achievements',
-    options?: { gameId?: string; timeRange?: string; limit?: number }
-  ): Promise<PaginatedResponse<LeaderboardEntry>> {
-    debugLog('GraphQL: Getting leaderboard', { type, metric, options });
-    try {
-      const client = getClient();
-      const result = await client.graphql({
-        query: getLeaderboard,
-        variables: {
-          type: type.toUpperCase(),
-          metric: metric.toUpperCase(),
-          gameId: options?.gameId,
-          timeRange: options?.timeRange,
-          limit: options?.limit || 10,
-        },
-      });
-      const data = (result as any).data?.getLeaderboard;
-      return {
-        items: data?.items || [],
-        totalCount: data?.totalCount,
-      };
-    } catch (error) {
-      debugError('GraphQL: Error getting leaderboard', error);
-      throw error;
-    }
-  },
-
-  async getLiveSessions(
-    filter?: { friendsOnly?: boolean; gameId?: string },
-    limit = 10,
-    nextToken?: string
-  ): Promise<PaginatedResponse<GameSession>> {
-    debugLog('GraphQL: Getting live sessions', { filter, limit });
-    try {
-      const client = getClient();
-      const result = await client.graphql({
-        query: getLiveSessions,
-        variables: { filter, limit, nextToken },
-      });
-      const data = (result as any).data?.getLiveSessions;
-      return {
-        items: data?.items || [],
-        nextToken: data?.nextToken,
-        totalCount: data?.totalCount,
-      };
-    } catch (error) {
-      debugError('GraphQL: Error getting live sessions', error);
       throw error;
     }
   },

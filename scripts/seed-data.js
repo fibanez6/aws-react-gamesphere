@@ -16,6 +16,7 @@
  *   --mode=graphql          Use AppSync GraphQL mutations
  *   --clear                 Clear existing data before seeding
  *   --tables=users,games    Seed specific tables only
+ *   --table-prefix=prefix     DynamoDB table prefix (default: 'GameSphere')
  * 
  * Environment variables (from .env or AWS profile):
  *   AWS_REGION
@@ -72,7 +73,7 @@ const profileHasSessionToken = (profile) => {
 // ============================================
 const config = {
   region: process.env.AWS_REGION || process.env.VITE_AWS_REGION || 'ap-southeast-2',
-  tablePrefix: `${process.env.DYNAMODB_TABLE_PREFIX || 'fi-gamesphere'}-dev`,
+  tablePrefix: `${process.env.DYNAMODB_TABLE_PREFIX || 'fi-gamesphere'}-dev`, // Will be overridden by --table-prefix argument
   cognitoUserId: null,
   mode: 'dynamodb',
   clear: false,
@@ -89,6 +90,8 @@ process.argv.slice(2).forEach(arg => {
     config.tables = arg.split('=')[1].split(',');
   } else if (arg.startsWith('--cognito-user-id=')) {
     config.cognitoUserId = arg.split('=')[1];
+  } else if (arg.startsWith('--table-prefix=')) {
+    config.tablePrefix = arg.split('=')[1];
   }
 });
 
@@ -408,15 +411,118 @@ const liveSessions = [
   { id: 'session_003', PK: 'SESSION#session_003', SK: 'LIVE', userId: 'friend_002', username: 'PixelQueen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen', gameId: 'game_005', gameName: 'Minecraft', gameImage: 'https://images.unsplash.com/photo-1587573089734-09cb69c0f2b4?w=300', startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), duration: 30, isLive: true, GSI1PK: 'LIVE_SESSIONS', GSI1SK: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
 ];
 
+// DynamoDB schema: pk = "TYPE#METRIC" (GSI partition key), score (GSI sort key), id (table PK)
+// The resolver queries `score-index` GSI with pk = `${type}#${metric}` and score from sort order.
 const leaderboard = [
-  { id: 'lb_001', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#001', rank: 1, userId: 'user_100', username: 'ProGamer', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer', level: 99, score: 5420, metric: 'hours', change: 'same', changeAmount: 0 },
-  { id: 'lb_002', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#002', rank: 2, userId: 'user_101', username: 'EliteWarrior', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior', level: 95, score: 4890, metric: 'hours', change: 'up', changeAmount: 2 },
-  { id: 'lb_003', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#003', rank: 3, userId: 'user_102', username: 'NinjaKing', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing', level: 92, score: 4520, metric: 'hours', change: 'down', changeAmount: 1 },
-  { id: 'lb_004', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#004', rank: 4, userId: 'friend_006', username: 'DragonSlayer', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer', level: 61, score: 3200, metric: 'hours', change: 'up', changeAmount: 3 },
-  { id: 'lb_005', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#005', rank: 5, userId: 'friend_002', username: 'PixelQueen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen', level: 55, score: 2890, metric: 'hours', change: 'same', changeAmount: 0 },
-  { id: 'lb_006', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#006', rank: 6, userId: 'friend_004', username: 'StormRider', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider', level: 47, score: 2450, metric: 'hours', change: 'up', changeAmount: 1 },
-  { id: 'lb_007', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#007', rank: 7, userId: 'user_001', username: 'ShadowBlade', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', level: 42, score: 1247, metric: 'hours', change: 'up', changeAmount: 5 },
-  { id: 'lb_008', PK: 'LEADERBOARD#GLOBAL#XP', SK: 'RANK#008', rank: 8, userId: 'friend_001', username: 'NightHawk', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk', level: 38, score: 980, metric: 'hours', change: 'down', changeAmount: 2 },
+  // ── GLOBAL#HOURS ──
+  { id: 'lb_gh_001', pk: 'GLOBAL#HOURS', userId: 'user_100', username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 5420, previousRank: 1, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_gh_002', pk: 'GLOBAL#HOURS', userId: 'user_101', username: 'EliteWarrior',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 4890, previousRank: 4, change: 2,  userRank: 'MASTER' },
+  { id: 'lb_gh_003', pk: 'GLOBAL#HOURS', userId: 'user_102', username: 'NinjaKing',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 4520, previousRank: 2, change: -1, userRank: 'MASTER' },
+  { id: 'lb_gh_004', pk: 'GLOBAL#HOURS', userId: 'friend_006', username: 'DragonSlayer', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 3200, previousRank: 7, change: 3,  userRank: 'DIAMOND' },
+  { id: 'lb_gh_005', pk: 'GLOBAL#HOURS', userId: 'friend_002', username: 'PixelQueen',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',     score: 2890, previousRank: 5, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_gh_006', pk: 'GLOBAL#HOURS', userId: 'friend_004', username: 'StormRider',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 2450, previousRank: 7, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_gh_007', pk: 'GLOBAL#HOURS', userId: 'user_001',   username: 'ShadowBlade',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 1247, previousRank: 12, change: 5, userRank: 'DIAMOND' },
+  { id: 'lb_gh_008', pk: 'GLOBAL#HOURS', userId: 'friend_001', username: 'NightHawk',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',      score: 980,  previousRank: 6, change: -2, userRank: 'PLATINUM' },
+  { id: 'lb_gh_009', pk: 'GLOBAL#HOURS', userId: 'friend_003', username: 'ThunderBolt',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ThunderBolt',    score: 720,  previousRank: 10, change: 1, userRank: 'GOLD' },
+  { id: 'lb_gh_010', pk: 'GLOBAL#HOURS', userId: 'friend_005', username: 'CyberWolf',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CyberWolf',      score: 610,  previousRank: 9, change: -1, userRank: 'GOLD' },
+  { id: 'lb_gh_011', pk: 'GLOBAL#HOURS', userId: cognitoUserId, username: 'testuser',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 1147, previousRank: 9, change: -2, userRank: 'DIAMOND' },
+
+  // ── GLOBAL#WINS ──
+  { id: 'lb_gw_001', pk: 'GLOBAL#WINS', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 1820, previousRank: 1, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_gw_002', pk: 'GLOBAL#WINS', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 1540, previousRank: 3, change: 1,  userRank: 'MASTER' },
+  { id: 'lb_gw_003', pk: 'GLOBAL#WINS', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 1490, previousRank: 2, change: -1, userRank: 'MASTER' },
+  { id: 'lb_gw_004', pk: 'GLOBAL#WINS', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 1120, previousRank: 5, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_gw_005', pk: 'GLOBAL#WINS', userId: 'friend_002', username: 'PixelQueen',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',     score: 980,  previousRank: 4, change: -1, userRank: 'DIAMOND' },
+  { id: 'lb_gw_006', pk: 'GLOBAL#WINS', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 870,  previousRank: 6, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_gw_007', pk: 'GLOBAL#WINS', userId: 'user_001',   username: 'ShadowBlade',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 650,  previousRank: 9, change: 2,  userRank: 'DIAMOND' },
+  { id: 'lb_gw_008', pk: 'GLOBAL#WINS', userId: 'friend_001', username: 'NightHawk',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',      score: 540,  previousRank: 7, change: -1, userRank: 'PLATINUM' },
+  { id: 'lb_gw_009', pk: 'GLOBAL#WINS', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 248,  previousRank: 10, change: 1, userRank: 'DIAMOND' },
+
+  // ── GLOBAL#ACHIEVEMENTS ──
+  { id: 'lb_ga_001', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',    score: 487, previousRank: 1, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_ga_002', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior', score: 412, previousRank: 2, change: 0,  userRank: 'MASTER' },
+  { id: 'lb_ga_003', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer', score: 356, previousRank: 4, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_ga_004', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',   score: 340, previousRank: 3, change: -1, userRank: 'MASTER' },
+  { id: 'lb_ga_005', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'friend_002', username: 'PixelQueen',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',  score: 298, previousRank: 5, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_ga_006', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',  score: 245, previousRank: 7, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_ga_007', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'user_001',   username: 'ShadowBlade',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', score: 210, previousRank: 6, change: -1, userRank: 'DIAMOND' },
+  { id: 'lb_ga_008', pk: 'GLOBAL#ACHIEVEMENTS', userId: 'friend_001', username: 'NightHawk',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',   score: 178, previousRank: 8, change: 0,  userRank: 'PLATINUM' },
+  { id: 'lb_ga_009', pk: 'GLOBAL#ACHIEVEMENTS', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade', score: 156, previousRank: 11, change: 2, userRank: 'DIAMOND' },
+
+  // ── GLOBAL#XP ──
+  { id: 'lb_gx_001', pk: 'GLOBAL#XP', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 99000, previousRank: 1, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_gx_002', pk: 'GLOBAL#XP', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 87500, previousRank: 2, change: 0,  userRank: 'MASTER' },
+  { id: 'lb_gx_003', pk: 'GLOBAL#XP', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 82000, previousRank: 4, change: 1,  userRank: 'MASTER' },
+  { id: 'lb_gx_004', pk: 'GLOBAL#XP', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 61000, previousRank: 3, change: -1, userRank: 'DIAMOND' },
+  { id: 'lb_gx_005', pk: 'GLOBAL#XP', userId: 'friend_002', username: 'PixelQueen',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',     score: 55000, previousRank: 5, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_gx_006', pk: 'GLOBAL#XP', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 47000, previousRank: 6, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_gx_007', pk: 'GLOBAL#XP', userId: 'user_001',   username: 'ShadowBlade',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 8750,  previousRank: 8, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_gx_008', pk: 'GLOBAL#XP', userId: 'friend_001', username: 'NightHawk',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',      score: 3800,  previousRank: 7, change: -1, userRank: 'PLATINUM' },
+  { id: 'lb_gx_009', pk: 'GLOBAL#XP', userId: 'friend_003', username: 'ThunderBolt',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ThunderBolt',    score: 2900,  previousRank: 9, change: 0,  userRank: 'GOLD' },
+  { id: 'lb_gx_010', pk: 'GLOBAL#XP', userId: 'friend_005', username: 'CyberWolf',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CyberWolf',      score: 3300,  previousRank: 10, change: 0, userRank: 'GOLD' },
+  { id: 'lb_gx_011', pk: 'GLOBAL#XP', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 1111,  previousRank: 13, change: 2, userRank: 'DIAMOND' },
+
+  // ── GLOBAL#game_001 ──
+  { id: 'lb_er_001', pk: 'GLOBAL#game_001', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 9850, previousRank: 1, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_er_002', pk: 'GLOBAL#game_001', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 8720, previousRank: 2, change: 0,  userRank: 'MASTER' },
+  { id: 'lb_er_003', pk: 'GLOBAL#game_001', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 7640, previousRank: 4, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_er_004', pk: 'GLOBAL#game_001', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 7200, previousRank: 3, change: -1, userRank: 'MASTER' },
+  { id: 'lb_er_005', pk: 'GLOBAL#game_001', userId: 'friend_001', username: 'NightHawk',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',      score: 5430, previousRank: 5, change: 0,  userRank: 'PLATINUM' },
+  { id: 'lb_er_006', pk: 'GLOBAL#game_001', userId: 'user_001',   username: 'ShadowBlade',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 4100, previousRank: 7, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_er_007', pk: 'GLOBAL#game_001', userId: 'friend_003', username: 'ThunderBolt',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ThunderBolt',    score: 3280, previousRank: 6, change: -1, userRank: 'GOLD' },
+  { id: 'lb_er_008', pk: 'GLOBAL#game_001', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 2750, previousRank: 9, change: 1,  userRank: 'DIAMOND' },
+
+  // ── GLOBAL#game_002 ──
+  { id: 'lb_cp_001', pk: 'GLOBAL#game_002', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 8900, previousRank: 2, change: 1,  userRank: 'MASTER' },
+  { id: 'lb_cp_002', pk: 'GLOBAL#game_002', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 8650, previousRank: 1, change: -1, userRank: 'GRANDMASTER' },
+  { id: 'lb_cp_003', pk: 'GLOBAL#game_002', userId: 'friend_002', username: 'PixelQueen',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',     score: 7100, previousRank: 3, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_cp_004', pk: 'GLOBAL#game_002', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 6320, previousRank: 5, change: 1,  userRank: 'MASTER' },
+  { id: 'lb_cp_005', pk: 'GLOBAL#game_002', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 5500, previousRank: 4, change: -1, userRank: 'DIAMOND' },
+  { id: 'lb_cp_006', pk: 'GLOBAL#game_002', userId: 'friend_005', username: 'CyberWolf',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CyberWolf',      score: 4800, previousRank: 6, change: 0,  userRank: 'GOLD' },
+  { id: 'lb_cp_007', pk: 'GLOBAL#game_002', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 3950, previousRank: 8, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_cp_008', pk: 'GLOBAL#game_002', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 1820, previousRank: 10, change: 2, userRank: 'DIAMOND' },
+
+  // ── GLOBAL#game_003 ──
+  { id: 'lb_va_001', pk: 'GLOBAL#game_003', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 12400, previousRank: 1, change: 0,  userRank: 'MASTER' },
+  { id: 'lb_va_002', pk: 'GLOBAL#game_003', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 11800, previousRank: 2, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_va_003', pk: 'GLOBAL#game_003', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 9500,  previousRank: 4, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_va_004', pk: 'GLOBAL#game_003', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 9200,  previousRank: 3, change: -1, userRank: 'MASTER' },
+  { id: 'lb_va_005', pk: 'GLOBAL#game_003', userId: 'friend_001', username: 'NightHawk',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',      score: 7600,  previousRank: 5, change: 0,  userRank: 'PLATINUM' },
+  { id: 'lb_va_006', pk: 'GLOBAL#game_003', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 6300,  previousRank: 6, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_va_007', pk: 'GLOBAL#game_003', userId: 'user_001',   username: 'ShadowBlade',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 5100,  previousRank: 8, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_va_008', pk: 'GLOBAL#game_003', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 4200,  previousRank: 10, change: 2, userRank: 'DIAMOND' },
+  { id: 'lb_va_009', pk: 'GLOBAL#game_003', userId: 'friend_003', username: 'ThunderBolt',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ThunderBolt',    score: 3400,  previousRank: 7, change: -2, userRank: 'GOLD' },
+
+  // ── GLOBAL#game_004 ──
+  { id: 'lb_ll_001', pk: 'GLOBAL#game_004', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 15200, previousRank: 1, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_ll_002', pk: 'GLOBAL#game_004', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 14100, previousRank: 3, change: 1,  userRank: 'MASTER' },
+  { id: 'lb_ll_003', pk: 'GLOBAL#game_004', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 13800, previousRank: 2, change: -1, userRank: 'MASTER' },
+  { id: 'lb_ll_004', pk: 'GLOBAL#game_004', userId: 'friend_002', username: 'PixelQueen',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',     score: 10500, previousRank: 4, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_ll_005', pk: 'GLOBAL#game_004', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 9200,  previousRank: 5, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_ll_006', pk: 'GLOBAL#game_004', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 7800,  previousRank: 7, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_ll_007', pk: 'GLOBAL#game_004', userId: 'friend_001', username: 'NightHawk',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',      score: 6400,  previousRank: 6, change: -1, userRank: 'PLATINUM' },
+  { id: 'lb_ll_008', pk: 'GLOBAL#game_004', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 3200,  previousRank: 9, change: 1,  userRank: 'DIAMOND' },
+
+  // ── GLOBAL#game_005 ──
+  { id: 'lb_mc_001', pk: 'GLOBAL#game_005', userId: 'friend_002', username: 'PixelQueen',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',     score: 18500, previousRank: 1, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_mc_002', pk: 'GLOBAL#game_005', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 14200, previousRank: 2, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_mc_003', pk: 'GLOBAL#game_005', userId: 'friend_005', username: 'CyberWolf',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CyberWolf',      score: 11800, previousRank: 4, change: 1,  userRank: 'GOLD' },
+  { id: 'lb_mc_004', pk: 'GLOBAL#game_005', userId: 'friend_003', username: 'ThunderBolt',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ThunderBolt',    score: 10500, previousRank: 3, change: -1, userRank: 'GOLD' },
+  { id: 'lb_mc_005', pk: 'GLOBAL#game_005', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 8900,  previousRank: 5, change: 0,  userRank: 'MASTER' },
+  { id: 'lb_mc_006', pk: 'GLOBAL#game_005', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 7200,  previousRank: 6, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_mc_007', pk: 'GLOBAL#game_005', userId: 'user_001',   username: 'ShadowBlade',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 5600,  previousRank: 8, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_mc_008', pk: 'GLOBAL#game_005', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 4100,  previousRank: 7, change: -1, userRank: 'DIAMOND' },
+
+  // ── GLOBAL#game_006 ──
+  { id: 'lb_fn_001', pk: 'GLOBAL#game_006', userId: 'user_100',   username: 'ProGamer',      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProGamer',      score: 22000, previousRank: 1, change: 0,  userRank: 'GRANDMASTER' },
+  { id: 'lb_fn_002', pk: 'GLOBAL#game_006', userId: 'user_102',   username: 'NinjaKing',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NinjaKing',      score: 19500, previousRank: 3, change: 1,  userRank: 'MASTER' },
+  { id: 'lb_fn_003', pk: 'GLOBAL#game_006', userId: 'user_101',   username: 'EliteWarrior',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EliteWarrior',   score: 18200, previousRank: 2, change: -1, userRank: 'MASTER' },
+  { id: 'lb_fn_004', pk: 'GLOBAL#game_006', userId: 'friend_004', username: 'StormRider',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=StormRider',     score: 13400, previousRank: 4, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_fn_005', pk: 'GLOBAL#game_006', userId: 'friend_006', username: 'DragonSlayer',  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer',   score: 11200, previousRank: 5, change: 0,  userRank: 'DIAMOND' },
+  { id: 'lb_fn_006', pk: 'GLOBAL#game_006', userId: 'friend_001', username: 'NightHawk',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk',      score: 8700,  previousRank: 7, change: 1,  userRank: 'PLATINUM' },
+  { id: 'lb_fn_007', pk: 'GLOBAL#game_006', userId: 'friend_002', username: 'PixelQueen',    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen',     score: 7900,  previousRank: 6, change: -1, userRank: 'DIAMOND' },
+  { id: 'lb_fn_008', pk: 'GLOBAL#game_006', userId: 'user_001',   username: 'ShadowBlade',   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 6100,  previousRank: 9, change: 1,  userRank: 'DIAMOND' },
+  { id: 'lb_fn_009', pk: 'GLOBAL#game_006', userId: cognitoUserId, username: 'testuser',     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',    score: 3500,  previousRank: 11, change: 2, userRank: 'DIAMOND' },
 ];
 
 // ============================================
@@ -431,7 +537,7 @@ const tableData = {
   achievements: { tableName: 'achievements', data: achievements, keyField: 'id' },
   activities: { tableName: 'activities', data: activities, keyField: 'id' },
 //   liveSessions: { tableName: 'sessions', data: liveSessions, keyField: 'id' },
-//   leaderboard: { tableName: 'leaderboard', data: leaderboard, keyField: 'id' },
+  leaderboard: { tableName: 'leaderboard', data: leaderboard, keyField: 'id' },
 };
 
 // ============================================

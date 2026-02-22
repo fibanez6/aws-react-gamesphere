@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { mockGames } from '../data/mockData';
+import gameService from '../services/gameService';
 import { Game, GameFilter } from '../types';
+import { debugLog } from '@/config/environment';
 
 interface UseTopGamesResult {
   games: Game[];
@@ -21,40 +22,17 @@ export function useTopGames(filter?: GameFilter): UseTopGamesResult {
     setIsLoading(true);
     setError(null);
     try {
-      // In production:
-      // const client = generateClient();
-      // const result = await client.graphql({
-      //   query: listTopGames,
-      //   variables: { filter, limit: 10, nextToken: reset ? null : nextToken }
-      // });
-      // const data = result.data.listTopGames;
-      // setGames(prev => reset ? data.items : [...prev, ...data.items]);
-      // setNextToken(data.nextToken);
+      debugLog('UseTopGames: Fetching top games with filter:', filter);
+      const result = await gameService.getTopGames(
+        { genre: filter?.genre, platform: filter?.platform },
+        10,
+        reset ? undefined : nextToken ?? undefined
+      );
 
-      // For development, use mock data with filtering
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      let filteredGames = [...mockGames];
-      
-      if (filter?.genre) {
-        filteredGames = filteredGames.filter(g => g.genre === filter.genre);
-      }
-      
-      if (filter?.platform) {
-        filteredGames = filteredGames.filter(g => g.platform.includes(filter.platform!));
-      }
-      
-      if (filter?.sortBy === 'activePlayers') {
-        filteredGames.sort((a, b) => b.activePlayers - a.activePlayers);
-      } else if (filter?.sortBy === 'avgPlaytime') {
-        filteredGames.sort((a, b) => b.avgPlaytime - a.avgPlaytime);
-      } else if (filter?.sortBy === 'rating') {
-        filteredGames.sort((a, b) => b.rating - a.rating);
-      }
-      
-      setGames(filteredGames);
-      setNextToken(null);
+      setGames(prev => reset ? result.items : [...prev, ...result.items]);
+      setNextToken(result.nextToken ?? null);
     } catch (err) {
+      debugLog('UseTopGames: Error fetching games:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch games'));
     } finally {
       setIsLoading(false);
@@ -97,19 +75,11 @@ export function useGameDetails(gameId: string): UseGameDetailsResult {
       setIsLoading(true);
       setError(null);
       try {
-        // In production:
-        // const client = generateClient();
-        // const result = await client.graphql({
-        //   query: getGameDetails,
-        //   variables: { gameId }
-        // });
-        // setGame(result.data.getGameDetails);
-
-        // For development, use mock data
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const foundGame = mockGames.find(g => g.id === gameId);
-        setGame(foundGame || null);
+        debugLog('UseGameDetails: Fetching game details for:', gameId);
+        const result = await gameService.getGameDetails(gameId);
+        setGame(result);
       } catch (err) {
+        debugLog('UseGameDetails: Error fetching game details:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch game details'));
       } finally {
         setIsLoading(false);

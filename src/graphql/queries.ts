@@ -248,20 +248,16 @@ export const getFriends = /* GraphQL */ `
 // ============================================
 
 export const getLeaderboard = /* GraphQL */ `
-  query GetLeaderboard($type: LeaderboardType!, $metric: LeaderboardMetric!, $gameId: ID, $timeRange: TimeRange, $limit: Int) {
-    getLeaderboard(type: $type, metric: $metric, gameId: $gameId, timeRange: $timeRange, limit: $limit) {
-      items {
-        rank
-        userId
-        username
-        avatar
-        level
-        score
-        metric
-        change
-        changeAmount
-      }
-      totalCount
+  query GetLeaderboard($filter: LeaderboardFilterInput) {
+    getLeaderboard(filter: $filter) {
+      userId
+      username
+      avatar
+      rank
+      previousRank
+      score
+      change
+      userRank
     }
   }
 `;

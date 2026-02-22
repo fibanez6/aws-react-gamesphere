@@ -25,14 +25,13 @@ export default function LeaderboardTable({
               <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
                 <th className="pb-3 font-medium">Rank</th>
                 <th className="pb-3 font-medium">Player</th>
-                <th className="pb-3 font-medium">Level</th>
                 <th className="pb-3 font-medium">Score</th>
                 <th className="pb-3 font-medium">Change</th>
               </tr>
             </thead>
             <tbody>
               {Array.from({ length: 10 }).map((_, i) => (
-                <TableRowSkeleton key={i} columns={5} />
+                <TableRowSkeleton key={i} columns={4} />
               ))}
             </tbody>
           </table>
@@ -57,9 +56,6 @@ export default function LeaderboardTable({
   };
 
   const formatScore = (entry: LeaderboardEntry) => {
-    if (entry.metric === 'winrate') {
-      return `${entry.score}%`;
-    }
     return entry.score.toLocaleString();
   };
 
@@ -71,7 +67,6 @@ export default function LeaderboardTable({
             <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
               <th className="pb-3 font-medium w-20">Rank</th>
               <th className="pb-3 font-medium">Player</th>
-              <th className="pb-3 font-medium w-24">Level</th>
               <th className="pb-3 font-medium w-32">{getMetricLabel()}</th>
               <th className="pb-3 font-medium w-24">Change</th>
             </tr>
@@ -109,15 +104,12 @@ export default function LeaderboardTable({
                   </div>
                 </td>
                 <td className="py-4">
-                  <span className="text-dark-300">Lv.{entry.level}</span>
-                </td>
-                <td className="py-4">
                   <span className="font-semibold text-primary-400">
                     {formatScore(entry)}
                   </span>
                 </td>
                 <td className="py-4">
-                  <RankChange change={entry.change} amount={entry.changeAmount} />
+                  <RankChange change={entry.change} />
                 </td>
               </tr>
             ))}
@@ -157,19 +149,22 @@ function RankDisplay({ rank }: { rank: number }) {
   );
 }
 
-function RankChange({ change, amount }: { change: 'up' | 'down' | 'same'; amount: number }) {
-  if (change === 'same' || amount === 0) {
+function RankChange({ change }: { change: number | null }) {
+  if (change === null || change === 0) {
     return <span className="text-dark-500">—</span>;
   }
+
+  const direction = change > 0 ? 'up' : 'down';
+  const amount = Math.abs(change);
 
   return (
     <div
       className={clsx(
         'flex items-center gap-1',
-        change === 'up' ? 'text-green-400' : 'text-red-400'
+        direction === 'up' ? 'text-green-400' : 'text-red-400'
       )}
     >
-      {change === 'up' ? (
+      {direction === 'up' ? (
         <ArrowUpIcon className="w-4 h-4" />
       ) : (
         <ArrowDownIcon className="w-4 h-4" />
