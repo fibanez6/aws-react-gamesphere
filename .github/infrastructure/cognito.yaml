@@ -44,14 +44,15 @@ Resources:
           AttributeDataType: String
           Mutable: true
           Required: true
-        - Name: username
+        - Name: preferred_username
           AttributeDataType: String
           Mutable: true
           Required: false
-        - Name: avatar
+        - Name: picture
           AttributeDataType: String
           Mutable: true
           Required: false
+        # CUSTOMS
         - Name: rank
           AttributeDataType: String
           Mutable: true
@@ -108,13 +109,13 @@ Resources:
       ReadAttributes:
         - email
         - email_verified
-        - custom:username
-        - custom:avatar
+        - preferred_username
+        - picture
         - custom:rank
       WriteAttributes:
         - email
-        - custom:username
-        - custom:avatar
+        - preferred_username
+        - picture
         - custom:rank
 
   # Identity Pool for AWS Credentials

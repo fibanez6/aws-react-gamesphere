@@ -3,5 +3,7 @@ fix getLiveSessions
 fix Mutations
 fix Subscriptions
 
+split authService-> mock graph
+
 
 fix multiple edit of .env and .env.local

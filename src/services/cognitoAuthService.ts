@@ -35,14 +35,17 @@ const cognitoUserToAppUser = (
   cognitoUser: CognitoUser,
   attributes: Record<string, string> = {}
 ): User => {
+  debugLog('Cognito: Converting Cognito user to app user', { username: cognitoUser.getUsername(), attributes });
   const username = attributes.preferred_username || cognitoUser.getUsername();
+  const avatar = attributes.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+  const rank = attributes['custom:rank'] || 'BRONZE';
   return {
     id: attributes.sub || cognitoUser.getUsername(),
     username,
     email: attributes.email || '',
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+    avatar,
     level: 1,
-    rank: 'Bronze',
+    rank,
     xp: 0,
     xpToNextLevel: 1000,
     isOnline: true,
@@ -70,6 +73,7 @@ const getUserAttributes = (cognitoUser: CognitoUser): Promise<Record<string, str
 };
 
 export const cognitoAuthService = {
+
   async getCurrentUser(): Promise<User | null> {
     debugLog('Cognito: Checking auth state');
     try {
@@ -222,15 +226,19 @@ export const cognitoAuthService = {
     pendingUserAttributes = {};
   },
 
-  async signUp(email: string, password: string, _username: string): Promise<User> {
+  async signUp(email: string, password: string, username: string): Promise<User> {
     debugLog('Cognito: Signing up user', { email });
 
     const userPool = getUserPool();
 
+    // TODO: fix picture and rank attributes - they are currently required by the user pool but should be optional. For now, we set defaults here.
     // Only include email - preferred_username may not be writable by the client
     // If you need preferred_username, enable it in Cognito User Pool Client settings
     const attributeList = [
       new CognitoUserAttribute({ Name: 'email', Value: email }),
+      new CognitoUserAttribute({ Name: 'preferred_username', Value: username }),
+      new CognitoUserAttribute({ Name: 'picture', Value: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}` }),
+      new CognitoUserAttribute({ Name: 'custom:rank', Value: 'BRONZE' }),
     ];
 
     return new Promise((resolve, reject) => {

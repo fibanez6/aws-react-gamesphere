@@ -93,7 +93,7 @@ const createCognitoClient = () => {
 // Cognito User Seeding
 // ============================================
 
-async function seedCognitoUser(username, email, password) {
+async function seedCognitoUser(username, email, password, rank, picture) {
   if (!config.userPoolId) {
     console.error('❌ Error: COGNITO_USER_POOL_ID not set');
     process.exit(1);
@@ -108,6 +108,9 @@ async function seedCognitoUser(username, email, password) {
       UserAttributes: [
         { Name: 'email', Value: email },
         { Name: 'email_verified', Value: 'true' },
+        { Name: 'preferred_username', Value: username },
+        { Name: 'picture', Value: picture },
+        { Name: 'custom:rank', Value: rank },
       ],
       MessageAction: 'SUPPRESS', // Don't send welcome email
     }));
@@ -177,9 +180,9 @@ async function main() {
   console.error(`  User Pool ID: ${config.userPoolId}`);
 
   try {
-    const userId = await seedCognitoUser('test_user', 'test@test.com', 'Qwer!234');
-    const friend01Id = await seedCognitoUser('friend_001', 'friend_001@test.com', 'Qwer!234');
-    const friend02Id = await seedCognitoUser('friend_002', 'friend_002@test.com', 'Qwer!234');
+    const userId = await seedCognitoUser('test_user', 'test@test.com', 'Qwer!234', 'DIAMOND', 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade');
+    const friend01Id = await seedCognitoUser('friend_001', 'friend_001@test.com', 'Qwer!234', 'PLATINUM', 'https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk');
+    const friend02Id = await seedCognitoUser('friend_002', 'friend_002@test.com', 'Qwer!234', 'DIAMOND', 'https://api.dicebear.com/7.x/avataaars/svg?seed=PixelQueen');
 
     // Output only the user ID to stdout (for piping to other scripts)
     console.log(userId);

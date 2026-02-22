@@ -154,4 +154,29 @@ if [ "$HOSTING_ENABLED" = true ] ; then
     echo "aws s3 sync dist/ s3://${S3_BUCKET}/ --delete"
     echo "aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_ID} --paths '/*'"
 fi
+
+# Write .env file for frontend
+
+ENV_FILE="${SCRIPT_DIR}/../../.env"
+echo -e "${YELLOW}Writing VITE variables to ${ENV_FILE}${NC}"
+cat > "$ENV_FILE" <<EOF
+VITE_APP_ENV=development
+VITE_AWS_REGION=${REGION}
+VITE_COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+VITE_COGNITO_CLIENT_ID=${COGNITO_USER_POOL_CLIENT_ID}
+VITE_COGNITO_IDENTITY_POOL_ID=${COGNITO_IDENTITY_POOL_ID}
+VITE_APPSYNC_ENDPOINT=${GRAPHQL_ENDPOINT}
+VITE_APPSYNC_API_KEY=${GRAPHQL_API_KEY}
+VITE_DYNAMODB_TABLE_PREFIX=${DYNAMODB_TABLE_PREFIX}
+EOF
+
+if [ "$HOSTING_ENABLED" = true ] ; then
+    cat >> "$ENV_FILE" <<EOF
+S3_BUCKET=${S3_BUCKET}
+CLOUDFRONT_ID=${CLOUDFRONT_ID}
+WEBSITE_URL=${WEBSITE_URL}
+EOF
+fi
+
+
 echo ""

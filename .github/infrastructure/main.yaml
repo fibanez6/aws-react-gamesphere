@@ -117,7 +117,7 @@ Outputs:
     Description: DynamoDB Table Prefix
     Value: !Sub '${ProjectName}-${Environment}'
     Export:
-      Name: !Sub '${ProjectName}-${Environment}-TablePrefix'
+      Name: !Sub '${ProjectName}-${Environment}-main-TablePrefix'
 
   # Cognito Outputs
   UserPoolId:

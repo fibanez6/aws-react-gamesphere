@@ -115,8 +115,8 @@ const cognitoUserId = config.cognitoUserId;
 const users = [
     {
         id: cognitoUserId,
-        username: 'testuser',
-        email: 'shadow@gamesphere.io',
+        username: 'test_user',
+        email: 'test@test.com',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade',
         level: 42,
         rank: 'DIAMOND',
