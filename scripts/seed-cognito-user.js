@@ -66,6 +66,7 @@ const profileHasSessionToken = (profile) => {
 const config = {
   region: process.env.AWS_REGION || process.env.VITE_AWS_REGION || 'ap-southeast-2',
   userPoolId: process.env.COGNITO_USER_POOL_ID || process.env.VITE_COGNITO_USER_POOL_ID,
+  dynamoDBTablePrefix: process.env.DYNAMODB_TABLE_PREFIX || process.env.VITE_DYNAMODB_TABLE_PREFIX || 'gamesphere-dev',
 };
 
 // ============================================
@@ -92,37 +93,34 @@ const createCognitoClient = () => {
 // Cognito User Seeding
 // ============================================
 
-async function seedCognitoUser() {
+async function seedCognitoUser(username, email, password) {
   if (!config.userPoolId) {
     console.error('❌ Error: COGNITO_USER_POOL_ID not set');
     process.exit(1);
   }
 
   const cognitoClient = createCognitoClient();
-  const testEmail = 'test@test.com';
-  const testPassword = 'Qwer!234';
-
   try {
     // Create the user
     const createResponse = await cognitoClient.send(new AdminCreateUserCommand({
       UserPoolId: config.userPoolId,
-      Username: testEmail,
+      Username: email, // Username must be the email
       UserAttributes: [
-        { Name: 'email', Value: testEmail },
+        { Name: 'email', Value: email },
         { Name: 'email_verified', Value: 'true' },
       ],
       MessageAction: 'SUPPRESS', // Don't send welcome email
     }));
-    console.error(`✓ Created Cognito user: ${testEmail}`);
+    console.error(`✓ Created Cognito user: ${email}`);
 
     // Set permanent password (bypasses temporary password flow)
     await cognitoClient.send(new AdminSetUserPasswordCommand({
       UserPoolId: config.userPoolId,
-      Username: testEmail,
-      Password: testPassword,
+      Username: email, // Username must be the email
+      Password: password,
       Permanent: true,
     }));
-    console.error(`✓ Set permanent password for: ${testEmail}`);
+    console.error(`✓ Set permanent password for: ${email}`);
 
     // Get the user's sub (userId) from the create response
     const subAttribute = createResponse.User?.Attributes?.find(attr => attr.Name === 'sub');
@@ -132,17 +130,16 @@ async function seedCognitoUser() {
 
   } catch (error) {
     if (error instanceof UsernameExistsException || error.name === 'UsernameExistsException') {
-      console.error(`ℹ️  User ${testEmail} already exists, retrieving existing user ID`);
-      
+      console.error(`ℹ️  User ${email} already exists, retrieving existing user ID`);
       // Still try to set the password in case it needs updating
       try {
         await cognitoClient.send(new AdminSetUserPasswordCommand({
           UserPoolId: config.userPoolId,
-          Username: testEmail,
-          Password: testPassword,
+          Username: email, // Username must be the email
+          Password: password,
           Permanent: true,
         }));
-        console.error(`✓ Updated password for existing user: ${testEmail}`);
+        console.error(`✓ Updated password for existing user: ${email}`);
       } catch (pwError) {
         console.error(`⚠️  Could not update password: ${pwError.message}`);
       }
@@ -151,7 +148,7 @@ async function seedCognitoUser() {
       try {
         const getUserResponse = await cognitoClient.send(new AdminGetUserCommand({
           UserPoolId: config.userPoolId,
-          Username: testEmail,
+          Username: email, // Username must be the email
         }));
         const subAttribute = getUserResponse.UserAttributes?.find(attr => attr.Name === 'sub');
         const userId = subAttribute?.Value;
@@ -180,16 +177,17 @@ async function main() {
   console.error(`  User Pool ID: ${config.userPoolId}`);
 
   try {
-    const userId = await seedCognitoUser();
-    
+    const userId = await seedCognitoUser('test_user', 'test@test.com', 'Qwer!234');
+    const friend01Id = await seedCognitoUser('friend_001', 'friend_001@test.com', 'Qwer!234');
+    const friend02Id = await seedCognitoUser('friend_002', 'friend_002@test.com', 'Qwer!234');
+
     // Output only the user ID to stdout (for piping to other scripts)
     console.log(userId);
-    
+
     console.error('\n✅ Cognito user seeding complete!');
     console.error(`\nTo seed data, run:`);
-    console.error(`  node scripts/seed-data.js --cognito-user-id=${userId}`);
-    console.error(`  node scripts/seed-data.js --cognito-user-id=${userId} --table-prefix=gamesphere-dev`);
-    
+    console.error(`  node scripts/seed-data.js --cognito-user-id=${userId} --table-prefix=${config.dynamoDBTablePrefix}`);
+
   } catch (error) {
     console.error('\n❌ Seeding failed:', error.message);
     console.error(error);

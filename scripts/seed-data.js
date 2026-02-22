@@ -73,7 +73,7 @@ const profileHasSessionToken = (profile) => {
 // ============================================
 const config = {
   region: process.env.AWS_REGION || process.env.VITE_AWS_REGION || 'ap-southeast-2',
-  tablePrefix: `${process.env.DYNAMODB_TABLE_PREFIX || 'fi-gamesphere'}-dev`, // Will be overridden by --table-prefix argument
+  tablePrefix: `${process.env.DYNAMODB_TABLE_PREFIX || process.env.VITE_DYNAMODB_TABLE_PREFIX || 'fi-gamesphere'}-dev`, // Will be overridden by --table-prefix argument
   cognitoUserId: null,
   mode: 'dynamodb',
   clear: false,

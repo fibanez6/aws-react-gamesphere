@@ -119,6 +119,7 @@ COGNITO_USER_POOL_CLIENT_ID=$(get_main_output "UserPoolClientId")
 COGNITO_IDENTITY_POOL_ID=$(get_main_output "IdentityPoolId")
 GRAPHQL_ENDPOINT=$(get_main_output "GraphQLApiEndpoint")
 GRAPHQL_API_KEY=$(get_main_output "GraphQLApiId")
+DYNAMODB_TABLE_PREFIX=$(get_main_output "TablePrefix")
 
 if [ "$HOSTING_ENABLED" = true ] ; then
     S3_BUCKET=$(get_main_output "S3BucketName")
@@ -140,6 +141,7 @@ echo "VITE_COGNITO_CLIENT_ID=${COGNITO_USER_POOL_CLIENT_ID}"
 echo "VITE_COGNITO_IDENTITY_POOL_ID=${COGNITO_IDENTITY_POOL_ID}"
 echo "VITE_APPSYNC_ENDPOINT=${GRAPHQL_ENDPOINT}"
 echo "VITE_APPSYNC_API_KEY=${GRAPHQL_API_KEY}"
+echo "VITE_DYNAMODB_TABLE_PREFIX=${DYNAMODB_TABLE_PREFIX}"
 echo ""
 if [ "$HOSTING_ENABLED" = true ] ; then
     echo -e "${YELLOW}Hosting Details:${NC}"

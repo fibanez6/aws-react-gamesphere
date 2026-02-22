@@ -382,6 +382,12 @@ Conditions:
   IsProd: !Equals [!Ref Environment, 'prod']
 
 Outputs:
+  TablePrefix:
+    Description: DynamoDB Table Prefix
+    Value: !Sub '${ProjectName}-${Environment}'
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-TablePrefix'
+
   UsersTableName:
     Description: Users Table Name
     Value: !Ref UsersTable

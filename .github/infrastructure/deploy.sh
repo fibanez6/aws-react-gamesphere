@@ -138,6 +138,7 @@ get_table_output() {
         --output text
 }
 
+TABLE_PREFIX=$(get_table_output "TablePrefix")
 USERS_TABLE_NAME=$(get_table_output "UsersTableName")
 USERS_TABLE_ARN=$(get_table_output "UsersTableArn")
 GAMES_TABLE_NAME=$(get_table_output "GamesTableName")
@@ -227,6 +228,7 @@ echo "VITE_COGNITO_CLIENT_ID=${USER_POOL_CLIENT_ID}"
 echo "VITE_COGNITO_IDENTITY_POOL_ID=${IDENTITY_POOL_ID}"
 echo "VITE_APPSYNC_ENDPOINT=${GRAPHQL_ENDPOINT}"
 echo "VITE_APPSYNC_API_KEY=${GRAPHQL_API_KEY}"
+echo "VITE_DYNAMODB_TABLE_PREFIX=${TABLE_PREFIX}"
 echo ""
 echo -e "${YELLOW}Hosting Details:${NC}"
 echo "S3 Bucket: ${S3_BUCKET}"

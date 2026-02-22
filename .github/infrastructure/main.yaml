@@ -112,6 +112,13 @@ Resources:
           Value: !Ref Environment
 
 Outputs:
+  # DinamoDB Outputs
+  TablePrefix:
+    Description: DynamoDB Table Prefix
+    Value: !Sub '${ProjectName}-${Environment}'
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-TablePrefix'
+
   # Cognito Outputs
   UserPoolId:
     Description: Cognito User Pool ID
