@@ -36,39 +36,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const checkAuthState = async () => {
-    debugLog('Checking authentication state...');
+    debugLog('AuthContext: Checking authentication state...');
     try {
       const currentUser = await authService.getCurrentUser();
       if (currentUser) {
-        debugLog('User found:', currentUser.username);
+        debugLog('AuthContext: User found:', currentUser.username);
         setUser(currentUser);
       } else {
-        debugLog('No authenticated user found');
+        debugLog('AuthContext: No authenticated user found');
       }
     } catch (error) {
-      debugError('Error checking auth state:', error);
+      debugError('AuthContext: Error checking auth state:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const login = useCallback(async (email: string, password: string) => {
-    debugLog('Attempting login for:', email);
+    debugLog('AuthContext: Attempting login for:', email);
     setIsLoading(true);
     try {
       const authenticatedUser = await authService.signIn(email, password);
       setUser(authenticatedUser);
       setNeedsNewPassword(false);
-      debugLog('Login successful:', authenticatedUser.username);
+      debugLog('AuthContext: Login successful:', authenticatedUser.username);
     } catch (error: any) {
       // Check if this is a new password required challenge
       if (error.code === 'NewPasswordRequiredException' || error.message === 'NEW_PASSWORD_REQUIRED') {
-        debugLog('New password required for user');
+        debugLog('AuthContext: New password required for user');
         setNeedsNewPassword(true);
         setIsLoading(false);
         throw error;
       }
-      debugError('Login error:', error);
+      debugError('AuthContext: Login error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -76,15 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const completeNewPassword = useCallback(async (newPassword: string) => {
-    debugLog('Completing new password challenge');
+    debugLog('AuthContext: Completing new password challenge');
     setIsLoading(true);
     try {
       const authenticatedUser = await cognitoAuthService.completeNewPasswordChallenge(newPassword);
       setUser(authenticatedUser);
       setNeedsNewPassword(false);
-      debugLog('New password set successfully:', authenticatedUser.username);
+      debugLog('AuthContext: New password set successfully:', authenticatedUser.username);
     } catch (error) {
-      debugError('Complete new password error:', error);
+      debugError('AuthContext: Complete new password error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -92,35 +92,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    debugLog('Logging out user');
+    debugLog('AuthContext: Logging out user');
     try {
       await authService.signOut();
       setUser(null);
-      debugLog('Logout successful');
+      debugLog('AuthContext: Logout successful');
     } catch (error) {
-      debugError('Logout error:', error);
+      debugError('AuthContext: Logout error:', error);
       throw error;
     }
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, username: string) => {
-    debugLog('Attempting signup for:', { email, username });
+    debugLog('AuthContext: Attempting signup for:', { email, username });
     setIsLoading(true);
     try {
       const newUser = await authService.signUp(email, password, username);
       setUser(newUser);
-      debugLog('Signup successful:', newUser.username);
+      debugLog('AuthContext: Signup successful:', newUser.username);
     } catch (error: any) {
       // Check if confirmation is required
       if (error.message?.includes('confirm your email')) {
-        debugLog('Email confirmation required for:', email);
+        debugLog('AuthContext: Email confirmation required for:', email);
         setPendingEmail(email);
         setPendingPassword(password);
         setNeedsConfirmation(true);
         setIsLoading(false);
         throw error;
       }
-      debugError('SignUp error:', error);
+      debugError('AuthContext: SignUp error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -131,24 +131,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!pendingEmail) {
       throw new Error('No pending email to confirm');
     }
-    debugLog('Confirming signup for:', pendingEmail);
+    debugLog('AuthContext: Confirming signup for:', pendingEmail);
     setIsLoading(true);
     try {
       await cognitoAuthService.confirmSignUp(pendingEmail, code);
-      debugLog('Email confirmed successfully');
+      debugLog('AuthContext: Email confirmed successfully');
       
       // Auto-login after confirmation if we have the password
       if (pendingPassword) {
         const authenticatedUser = await authService.signIn(pendingEmail, pendingPassword);
         setUser(authenticatedUser);
-        debugLog('Auto-login successful after confirmation');
+        debugLog('AuthContext: Auto-login successful after confirmation');
       }
       
       setNeedsConfirmation(false);
       setPendingEmail(null);
       setPendingPassword(null);
     } catch (error) {
-      debugError('Confirm signup error:', error);
+      debugError('AuthContext: Confirm signup error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -159,12 +159,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!pendingEmail) {
       throw new Error('No pending email to resend code to');
     }
-    debugLog('Resending confirmation code to:', pendingEmail);
+    debugLog('AuthContext: Resending confirmation code to:', pendingEmail);
     try {
       await cognitoAuthService.resendConfirmationCode(pendingEmail);
-      debugLog('Confirmation code resent');
+      debugLog('AuthContext: Confirmation code resent');
     } catch (error) {
-      debugError('Resend code error:', error);
+      debugError('AuthContext: Resend code error:', error);
       throw error;
     }
   }, [pendingEmail]);

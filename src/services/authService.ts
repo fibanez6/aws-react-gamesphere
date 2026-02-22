@@ -12,7 +12,7 @@ const STORAGE_KEY = 'gamesphere_user';
 // Mock authentication functions
 const mockAuthService = {
   async getCurrentUser(): Promise<User | null> {
-    debugLog('Mock: Checking auth state');
+    debugLog('AuthService: Checking auth state');
     const savedUser = localStorage.getItem(STORAGE_KEY);
     if (savedUser) {
       return JSON.parse(savedUser) as User;
@@ -21,7 +21,7 @@ const mockAuthService = {
   },
 
   async signIn(email: string, _password: string): Promise<User> {
-    debugLog('Mock: Signing in user', email);
+    debugLog('AuthService: Signing in user', email);
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, envConfig.apiTimeout));
     const mockUser: User = { ...mockCurrentUser, email };
@@ -30,7 +30,7 @@ const mockAuthService = {
   },
 
   async signUp(email: string, _password: string, username: string): Promise<User> {
-    debugLog('Mock: Signing up user', { email, username });
+    debugLog('AuthService: Signing up user', { email, username });
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, envConfig.apiTimeout));
     const newUser: User = {
@@ -44,7 +44,7 @@ const mockAuthService = {
   },
 
   async signOut(): Promise<void> {
-    debugLog('Mock: Signing out user');
+    debugLog('AuthService: Signing out user');
     localStorage.removeItem(STORAGE_KEY);
   },
 };
