@@ -13,7 +13,7 @@ interface LeaderboardTableProps {
 export default function LeaderboardTable({
   entries,
   isLoading,
-  currentUserId = 'user_001',
+  currentUserId,
   metric,
 }: LeaderboardTableProps) {
   if (isLoading) {

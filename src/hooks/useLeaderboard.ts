@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import leaderboardService from '../services/leaderboardService';
-import { LeaderboardEntry, LeaderboardFilter } from '../types';
+import { LeaderboardEntry, LeaderboardFilter, User } from '../types';
 import { debugLog } from '@/config/environment';
 
 interface UseLeaderboardResult {
@@ -11,7 +11,7 @@ interface UseLeaderboardResult {
   refetch: () => void;
 }
 
-export function useLeaderboard(filter: LeaderboardFilter): UseLeaderboardResult {
+export function useLeaderboard(filter: LeaderboardFilter, currentUser: User): UseLeaderboardResult {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -44,9 +44,8 @@ export function useLeaderboard(filter: LeaderboardFilter): UseLeaderboardResult 
       );
 
       setEntries(items);
-
       // Find current user's rank
-      const currentUserEntry = items.find(e => e.userId === 'user_001');
+      const currentUserEntry = items.find(e => e.userId === currentUser.id);
       setUserRank(currentUserEntry || null);
     } catch (err) {
       debugLog('UseLeaderboard: Error fetching leaderboard:', err);
@@ -54,7 +53,7 @@ export function useLeaderboard(filter: LeaderboardFilter): UseLeaderboardResult 
     } finally {
       setIsLoading(false);
     }
-  }, [filter]);
+  }, [filter, currentUser]);
 
   useEffect(() => {
     fetchLeaderboard();

@@ -4,6 +4,7 @@ import LeaderboardTable from '../components/leaderboard/LeaderboardTable';
 import PlayerRankCard from '../components/leaderboard/PlayerRankCard';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { LeaderboardFilter } from '../types';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Leaderboard() {
   const [filter, setFilter] = useState<LeaderboardFilter>({
@@ -11,7 +12,8 @@ export default function Leaderboard() {
     metric: 'hours',
   });
 
-  const { entries, isLoading, userRank } = useLeaderboard(filter);
+  const { user } = useAuth();
+  const { entries, isLoading, userRank } = useLeaderboard(filter, user!);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -34,6 +36,7 @@ export default function Leaderboard() {
             entries={entries}
             isLoading={isLoading}
             metric={filter.metric}
+            currentUserId={user?.id}
           />
         </div>
 
