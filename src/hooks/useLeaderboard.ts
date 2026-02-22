@@ -31,8 +31,12 @@ export function useLeaderboard(filter: LeaderboardFilter): UseLeaderboardResult 
       };
       const serviceMetric = metricMap[filter.metric] || 'HOURS';
 
+      // When filtering by game, pass type as 'global' so the resolver builds
+      // pk = GLOBAL#{gameId} (matching the seed data pattern).
+      const serviceType = filter.type === 'game' ? 'global' : filter.type;
+
       const items = await leaderboardService.getLeaderboard(
-        filter.type,
+        serviceType,
         serviceMetric,
         {
           gameId: filter.gameId,

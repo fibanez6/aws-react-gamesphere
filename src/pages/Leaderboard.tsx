@@ -57,7 +57,7 @@ export default function Leaderboard() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{entry.username}</p>
                     <p className="text-xs text-dark-400">
-                      {entry.score.toLocaleString()} {filter.metric}
+                      {entry.score.toLocaleString()} {filter.type === 'game' ? 'score' : filter.metric}
                     </p>
                   </div>
                 </div>

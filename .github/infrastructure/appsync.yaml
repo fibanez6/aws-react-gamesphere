@@ -1215,7 +1215,7 @@ Resources:
           const metric = filter.metric || 'HOURS';
           const gameId = filter.gameId;
           
-          // If gameId is provided, query by game name; otherwise query by metric
+          // If gameId is provided, query by gameId; otherwise query by metric
           const pk = gameId ? `${type}#${gameId}` : `${type}#${metric}`;
           
           return {
