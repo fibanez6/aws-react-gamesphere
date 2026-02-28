@@ -1,9 +1,51 @@
+convert it to amplify:
+✅ AppSync
+✅ DynamoDB tables
+✅ Resolvers
+✅ IAM roles
+✅ (Optionally) Cognito for auth
+✅ Subscriptions (if enabled)
+
+
+
 fix getLeaderboard - friend
 fix getLiveSessions
 fix Mutations
 fix Subscriptions
 
+
 split authService-> mock graph
 
 
 fix multiple edit of .env and .env.local
+
+{
+    "identity": {
+        "claims": {
+            "sub": "e9de54c8-5041-7023-464a-5cb9cf45ed46",
+            "email_verified": true,
+            "iss": "https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_GrZhTMyt7",
+            "cognito:username": "e9de54c8-5041-7023-464a-5cb9cf45ed46",
+            "preferred_username": "test_user",
+            "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowBlade",
+            "origin_jti": "6b738936-8286-4ed6-8785-42ce9a707e68",
+            "aud": "6a2ukeo4dbghc94718akvb6ns5",
+            "event_id": "c7dc85b3-d0a2-4c59-b3f3-f73f89db7caa",
+            "token_use": "id",
+            "custom:rank": "DIAMOND",
+            "auth_time": 1772265028,
+            "exp": 1772268628,
+            "iat": 1772265029,
+            "jti": "e914fc63-82a2-417c-8e30-1bbc7eeeb91c",
+            "email": "test@test.com"
+        },
+        "defaultAuthStrategy": "ALLOW",
+        "groups": null,
+        "issuer": "https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_GrZhTMyt7",
+        "sourceIp": [
+            "49.184.231.83"
+        ],
+        "sub": "e9de54c8-5041-7023-464a-5cb9cf45ed46",
+        "username": "e9de54c8-5041-7023-464a-5cb9cf45ed46"
+    }
+}

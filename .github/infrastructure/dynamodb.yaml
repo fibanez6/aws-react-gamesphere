@@ -188,12 +188,22 @@ Resources:
         - AttributeName: isActive
           AttributeType: S
       KeySchema:
-        - AttributeName: id
+        - AttributeName: userId
           KeyType: HASH
+        - AttributeName: startTime
+          KeyType: RANGE
       GlobalSecondaryIndexes:
-        - IndexName: userId-startTime-index
+        - IndexName: userId-id-index
           KeySchema:
             - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: session-startTime-index
+          KeySchema:
+            - AttributeName: id
               KeyType: HASH
             - AttributeName: startTime
               KeyType: RANGE
