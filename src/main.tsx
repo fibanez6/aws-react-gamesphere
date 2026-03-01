@@ -5,6 +5,7 @@ import { Authenticator } from '@aws-amplify/ui-react';
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import App from "./App.tsx";
+import { UserProvider } from "./context/UserContext";
 import outputs from "../amplify_outputs.json";
 // import "@aws-amplify/ui-react/styles.css";
 import envConfig, { debugLog } from './config/environment';
@@ -20,7 +21,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <ThemeProvider>
         <Authenticator.Provider>
-          <App />
+          <UserProvider>
+            <App />
+          </UserProvider>
         </Authenticator.Provider>
       </ThemeProvider>
     </BrowserRouter>

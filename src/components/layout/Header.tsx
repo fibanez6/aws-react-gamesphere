@@ -1,18 +1,19 @@
 import { useState } from 'react';
-// import { useAuth } from '../../context/AuthContext';
+import { useAuthenticator } from '@aws-amplify/ui-react';
 import { useTheme } from '../../context/ThemeContext';
-
+``
 export default function Header() {
   // const { user, logout } = useAuth();
+  const { user, signOut } = useAuthenticator();
   const { theme, toggleTheme } = useTheme();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const user = {
-    username: "Gamer123",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gamer123",
-    level: 42,
-  }
+  // const user = {
+  //   ...user,
+  //   avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gamer123",
+  //   level: 42,
+  // }
 
   return (
     <header className="h-16 bg-dark-900/50 backdrop-blur-sm border-b border-dark-800 flex items-center justify-between px-6">
