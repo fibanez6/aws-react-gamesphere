@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { useTheme } from '../../context/ThemeContext';
-``
+
 export default function Header() {
   // const { user, logout } = useAuth();
-  const { user, signOut } = useAuthenticator();
+  const { user } = useAuthenticator();
   const { theme, toggleTheme } = useTheme();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // const user = {
-  //   ...user,
-  //   avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gamer123",
-  //   level: 42,
-  // }
+  // TODO remove user2 and use real user data from context once implemented
+  const user2 = {
+    ...user,
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gamer123",
+    level: 42,
+  }
 
   return (
     <header className="h-16 bg-dark-900/50 backdrop-blur-sm border-b border-dark-800 flex items-center justify-between px-6">
@@ -59,13 +60,13 @@ export default function Header() {
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-800/50 transition-colors"
           >
             <img
-              src={user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
-              alt={user?.username}
+              src={user2?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+              alt={user2?.username}
               className="w-8 h-8 rounded-full ring-2 ring-primary-500"
             />
             <div className="text-left hidden md:block">
-              <p className="text-sm font-medium">{user?.username}</p>
-              <p className="text-xs text-dark-400">Level {user?.level}</p>
+              <p className="text-sm font-medium">{user2?.username}</p>
+              <p className="text-xs text-dark-400">Level {user2?.level}</p>
             </div>
             <ChevronDownIcon className="w-4 h-4 text-dark-400" />
           </button>
