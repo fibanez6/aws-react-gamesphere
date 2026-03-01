@@ -1,15 +1,12 @@
+import { debugLog } from '@/config/environment';
 import { useUser } from '../context/UserContext';
 
 export default function Dashboard() {
-  const { userProfile, loading } = useUser();
+  const { userProfile } = useUser();
 
-  if (loading || !userProfile) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-dark-400">Loading profile...</p>
-      </div>
-    );
-  }
+  if (!userProfile) return null;
+
+  debugLog('Rendering Dashboard for user:', userProfile);
 
   return (
     <div className="space-y-6 animate-fade-in">
