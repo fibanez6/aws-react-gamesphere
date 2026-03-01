@@ -1,13 +1,14 @@
 import { Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
     <>
       <Routes>
-        {/* <Route path="/login" element={<Login />} /> */}
+        <Route path="/login" element={<Login />} />
         <Route
           path="/"
           element={
