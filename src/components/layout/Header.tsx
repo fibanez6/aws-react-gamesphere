@@ -1,20 +1,14 @@
 import { useState } from 'react';
-import { useAuthenticator } from '@aws-amplify/ui-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useUser } from '@/context/UserContext';
+import { useAuthenticator } from "@aws-amplify/ui-react";
 
 export default function Header() {
-  // const { user, logout } = useAuth();
-  const { user } = useAuthenticator();
+  const { userProfile } = useUser();
+  const { signOut } = useAuthenticator();
   const { theme, toggleTheme } = useTheme();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // TODO remove user2 and use real user data from context once implemented
-  const user2 = {
-    ...user,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gamer123",
-    level: 42,
-  }
 
   return (
     <header className="h-16 bg-dark-900/50 backdrop-blur-sm border-b border-dark-800 flex items-center justify-between px-6">
@@ -60,13 +54,13 @@ export default function Header() {
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-800/50 transition-colors"
           >
             <img
-              src={user2?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
-              alt={user2?.username}
+              src={userProfile?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+              alt={userProfile?.username}
               className="w-8 h-8 rounded-full ring-2 ring-primary-500"
             />
             <div className="text-left hidden md:block">
-              <p className="text-sm font-medium">{user2?.username}</p>
-              <p className="text-xs text-dark-400">Level {user2?.level}</p>
+              <p className="text-sm font-medium">{userProfile?.username}</p>
+              <p className="text-xs text-dark-400">Level {userProfile?.level}</p>
             </div>
             <ChevronDownIcon className="w-4 h-4 text-dark-400" />
           </button>
@@ -87,7 +81,7 @@ export default function Header() {
               </a>
               <hr className="my-2 border-dark-700" />
               <button
-                // onClick={logout}
+                onClick={signOut}
                 className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-dark-700/50"
               >
                 Sign Out
