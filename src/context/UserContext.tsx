@@ -1,3 +1,5 @@
+import { debugLog } from '@/config/environment';
+import { useAuthenticator } from '@aws-amplify/ui-react';
 import {
   createContext,
   ReactNode,
@@ -6,10 +8,8 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useAuthenticator } from '@aws-amplify/ui-react';
-import { dataClient } from '../config/amplifyClient';
 import type { Schema } from '../../amplify/data/resource';
-import { debugLog } from '@/config/environment';
+import { dataClient } from '../config/amplifyClient';
 
 type UserProfile = Schema['User']['type'];
 
@@ -76,6 +76,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           xp: 0,
           level: 1,
           status: 'ONLINE',
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=default`
         });
 
         if (createErrors?.length) {
