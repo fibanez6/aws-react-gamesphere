@@ -9,6 +9,7 @@ import {
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { dataClient } from '../config/amplifyClient';
 import type { Schema } from '../../amplify/data/resource';
+import { debugLog } from '@/config/environment';
 
 type UserProfile = Schema['User']['type'];
 
@@ -43,18 +44,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      // List the owner's User records (should be 0 or 1)
-      const { data: users, errors: listErrors } = await dataClient.models.User.list();
+      const userId = user.username; // Cognito sub – used as the DynamoDB record id
 
-      if (listErrors?.length) {
-        throw new Error(listErrors.map((e) => e.message).join(', '));
+      // Try to fetch the existing User record by id (direct key lookup)
+      const { data: existingUser, errors: getErrors } = await dataClient.models.User.get({
+        id: userId,
+      });
+
+      if (getErrors?.length) {
+        throw new Error(getErrors.map((e) => e.message).join(', '));
       }
 
-      if (users.length > 0) {
+      if (existingUser) {
         // User record already exists – use it
-        setUserProfile(users[0]);
+        debugLog('User record found for authenticated user:', existingUser);
+        setUserProfile(existingUser);
       } else {
-        // First login – create the User record with defaults
+        // First login – create the User record with the Cognito sub as id
         const email =
           user.signInDetails?.loginId ??
           user.username ??
@@ -63,6 +69,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const username = email.split('@')[0]; // sensible default
 
         const { data: newUser, errors: createErrors } = await dataClient.models.User.create({
+          id: userId,
           email,
           username,
           rank: 'BRONZE',
@@ -75,6 +82,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           throw new Error(createErrors.map((e) => e.message).join(', '));
         }
 
+        debugLog('Created new user record for authenticated user:', newUser);
         setUserProfile(newUser);
       }
     } catch (err) {

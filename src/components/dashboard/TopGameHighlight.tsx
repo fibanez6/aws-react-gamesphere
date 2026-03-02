@@ -1,8 +1,15 @@
-import { Game } from '../../types';
 import Skeleton from '../common/Skeleton';
 
+interface TopGameHighlightGame {
+  name: string;
+  coverImage: string;
+  genre: string;
+  activePlayers: number;
+  rating: number;
+}
+
 interface TopGameHighlightProps {
-  game: Game | null;
+  game: TopGameHighlightGame | null;
   hoursThisWeek?: number;
   isLoading: boolean;
 }

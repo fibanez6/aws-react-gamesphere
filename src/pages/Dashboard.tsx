@@ -1,84 +1,14 @@
-import { debugLog } from '@/config/environment';
-import { useUser } from '../context/UserContext';
+import useDashboard from '../hooks/useDashboard';
 import { StatsGrid } from '../components/dashboard/StatsSummaryCard';
 import PerformanceTrendChart from '../components/dashboard/PerformanceTrendChart';
 import TopGameHighlight from '../components/dashboard/TopGameHighlight';
 import QuickStatItem from '../components/dashboard/QuickStatItem';
 import RecentActivityFeed from '../components/dashboard/RecentActivityFeed';
 
-// TODO: Replace with real data fetching logic
-const stats = {
-  totalHoursPlayed: 128,
-  gamesOwned: 85,
-  achievementsUnlocked: 12,
-  winRate: 66.4,
-  weeklyPlaytime: [5, 8, 12, 10, 15, 20, 18],
-  topGame: {
-    id: '1',
-    name: 'Elden Ring',
-    coverImage: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1r8i.jpg',
-    genre: 'Action RPG',
-    platform: ['PC', 'PS5', 'Xbox Series X'],
-    activePlayers: 500000,
-    avgPlaytime: 50,
-    rating: 9.5,
-    description: 'A sprawling open-world action RPG from FromSoftware.',
-    releaseDate: '2022-02-25',  
-  },
-  hoursThisWeek: 20,
-};
-
-const activities = [
-  {
-    id: '1',
-    type: 'game_played',
-    userId: 'user1',
-    username: 'GamerGal92',
-    avatar: 'https://api.example.com/avatar/gamerGal92.jpg',
-    title: 'Played Elden Ring',
-    description: 'Defeated Malenia, Blade of Miquella',
-    gameId: '1',
-    gameName: 'Elden Ring',
-    gameCover: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1r8i.jpg',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    type: 'achievement_unlocked',
-    userId: 'user2',
-    username: 'PixelWarrior',
-    avatar: 'https://api.example.com/avatar/pixelWarrior.jpg',
-    title: 'Unlocked Achievement',
-    description: 'Speedrunner - Completed in under 2 hours',
-    gameId: '2',
-    gameName: 'Cyberpunk 2077',
-    gameCover: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2fyd.jpg',
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '3',
-    type: 'level_up',
-    userId: 'user3',
-    username: 'ArcadeAce',
-    avatar: 'https://api.example.com/avatar/arcadeAce.jpg',
-    title: 'Reached Level 25',
-    description: 'Keep grinding to unlock new rewards!',
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const onlineFriends = [
-  { id: '1', username: 'GamerGal92' },
-  { id: '2', username: 'PixelWarrior' },
-  { id: '3', username: 'ArcadeAce' },
-];
-
 export default function Dashboard() {
-  const { userProfile, loading } = useUser();
+  const { userProfile, stats, activities, topGame, loading } = useDashboard();
 
   if (!userProfile) return null;
-
-  debugLog('Rendering Dashboard for user:', userProfile);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -111,7 +41,7 @@ export default function Dashboard() {
         {/* Left Column - Chart */}
         <div className="lg:col-span-2">
           <PerformanceTrendChart
-            data={stats?.weeklyPlaytime || [0, 0, 0, 0, 0, 0, 0]}
+            data={(stats?.weeklyPlaytime as number[]) || [0, 0, 0, 0, 0, 0, 0]}
             isLoading={loading}
           />
         </div>
@@ -119,7 +49,7 @@ export default function Dashboard() {
         {/* Right Column - Top Game */}
         <div>
           <TopGameHighlight
-            game={stats?.topGame}
+            game={topGame}
             hoursThisWeek={Math.round(stats?.hoursThisWeek || 0)}
             isLoading={loading}
           />
@@ -145,10 +75,9 @@ export default function Dashboard() {
               icon="🏆"
             />
             <QuickStatItem
-              label="Friends Online"
-              value={onlineFriends.length.toString()}
-              icon="👥"
-              isLive
+              label="Current Streak"
+              value={stats?.currentStreak?.toString() ?? '-'}
+              icon="🔥"
             />
             <QuickStatItem
               label="Win Rate"
