@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
 import type { SelectionSet } from 'aws-amplify/data';
-import { dataClient } from '../config/amplifyClient';
-import { useUser } from '../context/UserContext';
-import { debugLog } from '../config/environment';
+import { useCallback, useEffect, useState } from 'react';
 import type { Schema } from '../../amplify/data/resource';
+import { dataClient } from '../config/amplifyClient';
+import { debugLog } from '../config/environment';
+import { useUser } from '../context/UserContext';
+import type { User } from '../types';
 
 type UserProfile = Schema['User']['type'];
 
@@ -21,17 +22,16 @@ const DASHBOARD_SELECTION_SET = [
   'activities.*',
 ] as const;
 
-type DashboardUser = SelectionSet<Schema['User']['type'], typeof DASHBOARD_SELECTION_SET>;
-export type DashboardActivity = DashboardUser['activities'][number];
-type PlayerStats = Omit<DashboardUser['stats'], 'user'>;
-type DashboardStats = PlayerStats & { hoursThisWeek: number };
-type TopGame = Pick<Schema['Game']['type'], 'id' | 'name' | 'coverImage' | 'genre' | 'platforms' | 'activePlayers' | 'rating'>;
+type PlayerProfile = SelectionSet<User, typeof DASHBOARD_SELECTION_SET>;
+type PlayerActivities = PlayerProfile['activities'][number];
+type PlayerStats = Omit<PlayerProfile['stats'], 'user'> & { hoursThisWeek: number };
+type PlayerTopGame = Pick<Schema['Game']['type'], 'id' | 'name' | 'coverImage' | 'genre' | 'platforms' | 'activePlayers' | 'rating'>;
 
 interface UseDashboardReturn {
   userProfile: UserProfile | null;
-  stats: DashboardStats | null;
-  activities: DashboardActivity[];
-  topGame: TopGame | null;
+  stats: PlayerStats | null;
+  activities: PlayerActivities[];
+  topGame: PlayerTopGame | null;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -39,9 +39,9 @@ interface UseDashboardReturn {
 
 export default function useDashboard(): UseDashboardReturn {
   const { userProfile } = useUser();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activities, setActivities] = useState<DashboardActivity[]>([]);
-  const [topGame, setTopGame] = useState<TopGame | null>(null);
+  const [stats, setStats] = useState<PlayerStats | null>(null);
+  const [activities, setActivities] = useState<PlayerActivities[]>([]);
+  const [topGame, setTopGame] = useState<PlayerTopGame | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,7 +117,7 @@ export default function useDashboard(): UseDashboardReturn {
         setTopGame(null);
       }
 
-      debugLog('Dashboard data fetched:', { stats: playerStats, activities: sortedActivities.length });
+      debugLog('Dashboard data fetched:', { profile: userProfile, stats: playerStats, activities: sortedActivities.length });
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');

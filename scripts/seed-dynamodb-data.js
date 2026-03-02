@@ -18,14 +18,14 @@
 
 import { DynamoDBClient, ListTablesCommand } from "@aws-sdk/client-dynamodb";
 import {
-  DynamoDBDocumentClient,
   BatchWriteCommand,
-  ScanCommand,
   DeleteCommand,
+  DynamoDBDocumentClient,
+  ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -84,6 +84,8 @@ async function discoverTableNames() {
       else if (/^Game-/i.test(name)) tableMap.Game = name;
       else if (/^PlayerStats-/i.test(name)) tableMap.PlayerStats = name;
       else if (/^Activity-/i.test(name)) tableMap.Activity = name;
+      else if (/^GameStats-/i.test(name)) tableMap.GameStats = name;
+      else if (/^Achievement-/i.test(name)) tableMap.Achievement = name;
     }
     exclusiveStartTableName = LastEvaluatedTableName;
   } while (exclusiveStartTableName);
@@ -433,6 +435,121 @@ function generatePlayerStats(users) {
       updatedAt: now,
     };
   });
+}
+
+function generateGameStats(users, games) {
+  const pastDate = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString();
+  };
+
+  const ranks = ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER"];
+
+  // Each entry: [userIndex, gameIndex, hoursPlayed, daysAgoLastPlayed, rankIndex, winRate, totalMatches, wins, losses]
+  const raw = [
+    [0, 0, 320.5,  0, 4, 68.2, 220, 150, 70],   // AlexStorm → Stellar Odyssey
+    [0, 1, 180.3,  2, 3, 55.0, 120, 66,  54],    // AlexStorm → CyberStrike
+    [0, 2, 95.0,   5, 2, 72.0, 50,  36,  14],     // AlexStorm → Dragon's Ascent
+    [1, 1, 410.2,  0, 4, 62.5, 340, 212, 128],   // LunaCipher → CyberStrike
+    [1, 5, 250.0,  1, 3, 58.0, 180, 104, 76],    // LunaCipher → Arcane Legends
+    [2, 2, 680.7,  0, 5, 74.3, 450, 334, 116],   // KaiPhoenix → Dragon's Ascent
+    [2, 9, 520.1,  1, 5, 71.0, 380, 270, 110],   // KaiPhoenix → Skybound Horizons
+    [2, 0, 210.0,  3, 4, 66.0, 160, 106, 54],    // KaiPhoenix → Stellar Odyssey
+    [3, 6, 180.3,  0, 2, 48.0, 130, 62,  68],    // NovaBlade → Gravity Shift
+    [3, 3, 95.0,   4, 1, 42.5, 80,  34,  46],    // NovaBlade → Velocity Rush
+    [4, 8, 890.5,  0, 6, 80.1, 520, 417, 103],   // ZaraVortex → Neon Arena
+    [4, 2, 620.0,  0, 6, 78.5, 400, 314, 86],    // ZaraVortex → Dragon's Ascent
+    [4, 9, 450.2,  1, 5, 75.0, 280, 210, 70],    // ZaraVortex → Skybound Horizons
+    [5, 4, 120.0,  3, 1, 35.0, 80,  28,  52],    // RivenShadow → Phantom Realms
+    [5, 8, 85.0,   7, 0, 30.0, 60,  18,  42],    // RivenShadow → Neon Arena
+    [6, 5, 340.2,  0, 3, 61.0, 200, 122, 78],    // EchoFrost → Arcane Legends
+    [6, 1, 190.5,  2, 3, 59.0, 140, 83,  57],    // EchoFrost → CyberStrike
+    [7, 6, 45.0,  10, 0, 28.0, 30,  8,   22],    // DrakeEmber → Gravity Shift
+    [8, 3, 380.4,  0, 4, 67.0, 260, 174, 86],    // AriaNebula → Velocity Rush
+    [8, 7, 290.0,  1, 4, 63.5, 200, 127, 73],    // AriaNebula → Warfront Tactics
+    [8, 0, 150.0,  4, 3, 60.0, 100, 60,  40],    // AriaNebula → Stellar Odyssey
+    [9, 9, 210.6,  1, 2, 50.0, 150, 75,  75],    // JaxThunder → Skybound Horizons
+    [9, 7, 130.0,  3, 2, 45.0, 100, 45,  55],    // JaxThunder → Warfront Tactics
+  ];
+
+  return raw.map(([ui, gi, hours, daysAgo, ri, wr, tm, w, l], idx) => ({
+    id: `gamestats-${String(idx + 1).padStart(3, "0")}`,
+    userId: users[ui].id,
+    gameId: games[gi].id,
+    gameName: games[gi].name,
+    gameCover: games[gi].coverImage,
+    hoursPlayed: hours,
+    lastPlayed: pastDate(daysAgo),
+    rank: ranks[ri],
+    winRate: wr,
+    totalMatches: tm,
+    wins: w,
+    losses: l,
+    owner: OWNER,
+    createdAt: now,
+    updatedAt: now,
+  }));
+}
+
+function generateAchievements(users, games) {
+  const pastDate = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString();
+  };
+
+  return [
+    // AlexStorm achievements
+    { id: "ach-001", userId: "user-001", gameId: "game-001", gameName: "Stellar Odyssey",     name: "Starbound Explorer",   description: "Discovered all hidden planets.",                  icon: "🌌", rarity: "EPIC",      unlockedAt: pastDate(1) },
+    { id: "ach-002", userId: "user-001", gameId: "game-001", gameName: "Stellar Odyssey",     name: "First Contact",        description: "Encountered an alien civilisation for the first time.", icon: "👽", rarity: "COMMON",    unlockedAt: pastDate(30) },
+    { id: "ach-003", userId: "user-001", gameId: "game-002", gameName: "CyberStrike 2077",    name: "Headshot Specialist",  description: "Landed 500 headshots.",                           icon: "🎯", rarity: "RARE",      unlockedAt: pastDate(10) },
+    { id: "ach-004", userId: "user-001", gameId: "game-002", gameName: "CyberStrike 2077",    name: "Neon Warrior",         description: "Won 50 ranked matches.",                           icon: "⚔️", rarity: "UNCOMMON",  unlockedAt: pastDate(15) },
+
+    // LunaCipher achievements
+    { id: "ach-005", userId: "user-002", gameId: "game-002", gameName: "CyberStrike 2077",    name: "Unstoppable",          description: "Achieved a 10-kill streak.",                       icon: "🔥", rarity: "RARE",      unlockedAt: pastDate(2) },
+    { id: "ach-006", userId: "user-002", gameId: "game-006", gameName: "Arcane Legends Online",name: "Dungeon Crawler",      description: "Cleared 50 dungeons.",                             icon: "🏰", rarity: "UNCOMMON",  unlockedAt: pastDate(8) },
+
+    // KaiPhoenix achievements
+    { id: "ach-007", userId: "user-003", gameId: "game-003", gameName: "Dragon's Ascent",     name: "Dragon Slayer",        description: "Defeated 100 dragons.",                            icon: "🐉", rarity: "LEGENDARY", unlockedAt: pastDate(1) },
+    { id: "ach-008", userId: "user-003", gameId: "game-003", gameName: "Dragon's Ascent",     name: "Flame Forged",         description: "Forged a legendary weapon from dragon fire.",       icon: "🗡️", rarity: "EPIC",      unlockedAt: pastDate(5) },
+    { id: "ach-009", userId: "user-003", gameId: "game-010", gameName: "Skybound Horizons",   name: "World Wanderer",       description: "Explored every region on the map.",                icon: "🗺️", rarity: "RARE",      unlockedAt: pastDate(3) },
+    { id: "ach-010", userId: "user-003", gameId: "game-001", gameName: "Stellar Odyssey",     name: "Warp Speed",           description: "Travelled 10,000 light-years.",                    icon: "🚀", rarity: "UNCOMMON",  unlockedAt: pastDate(12) },
+
+    // NovaBlade achievements
+    { id: "ach-011", userId: "user-004", gameId: "game-007", gameName: "Gravity Shift",       name: "Gravity Master",       description: "Completed all levels without dying.",              icon: "🌀", rarity: "LEGENDARY", unlockedAt: pastDate(3) },
+    { id: "ach-012", userId: "user-004", gameId: "game-004", gameName: "Velocity Rush",       name: "First Lap",            description: "Finished your first race.",                        icon: "🏁", rarity: "COMMON",    unlockedAt: pastDate(20) },
+
+    // ZaraVortex achievements
+    { id: "ach-013", userId: "user-005", gameId: "game-009", gameName: "Neon Arena",          name: "Arena Legend",          description: "Reached 1000 total wins.",                         icon: "🏆", rarity: "LEGENDARY", unlockedAt: pastDate(2) },
+    { id: "ach-014", userId: "user-005", gameId: "game-009", gameName: "Neon Arena",          name: "Battle Hardened",      description: "Survived 500 matches.",                            icon: "🛡️", rarity: "EPIC",      unlockedAt: pastDate(14) },
+    { id: "ach-015", userId: "user-005", gameId: "game-003", gameName: "Dragon's Ascent",     name: "Elemental Fury",       description: "Mastered all four elemental abilities.",            icon: "🌊", rarity: "EPIC",      unlockedAt: pastDate(7) },
+    { id: "ach-016", userId: "user-005", gameId: "game-010", gameName: "Skybound Horizons",   name: "Sky Pioneer",          description: "Discovered 50 floating islands.",                  icon: "☁️", rarity: "RARE",      unlockedAt: pastDate(4) },
+
+    // RivenShadow achievements
+    { id: "ach-017", userId: "user-006", gameId: "game-005", gameName: "Phantom Realms",      name: "Fearless",             description: "Completed a level without using the flashlight.",   icon: "👻", rarity: "RARE",      unlockedAt: pastDate(6) },
+
+    // EchoFrost achievements
+    { id: "ach-018", userId: "user-007", gameId: "game-006", gameName: "Arcane Legends Online",name: "Raid Leader",          description: "Led a raid party to victory 25 times.",            icon: "⚡", rarity: "EPIC",      unlockedAt: pastDate(2) },
+    { id: "ach-019", userId: "user-007", gameId: "game-002", gameName: "CyberStrike 2077",    name: "Sharpshooter",         description: "Achieved 90% accuracy in a match.",                icon: "🔫", rarity: "RARE",      unlockedAt: pastDate(9) },
+
+    // DrakeEmber achievements
+    { id: "ach-020", userId: "user-008", gameId: "game-007", gameName: "Gravity Shift",       name: "First Steps",          description: "Completed the tutorial level.",                    icon: "👣", rarity: "COMMON",    unlockedAt: pastDate(14) },
+
+    // AriaNebula achievements
+    { id: "ach-021", userId: "user-009", gameId: "game-004", gameName: "Velocity Rush",       name: "Speed Demon",          description: "Finished all time trials under gold time.",         icon: "⚡", rarity: "LEGENDARY", unlockedAt: pastDate(3) },
+    { id: "ach-022", userId: "user-009", gameId: "game-008", gameName: "Warfront Tactics",    name: "Tactician",            description: "Won 100 strategy matches.",                        icon: "♟️", rarity: "EPIC",      unlockedAt: pastDate(5) },
+    { id: "ach-023", userId: "user-009", gameId: "game-001", gameName: "Stellar Odyssey",     name: "Nebula Navigator",     description: "Charted 25 nebulae.",                              icon: "✨", rarity: "UNCOMMON",  unlockedAt: pastDate(18) },
+
+    // JaxThunder achievements
+    { id: "ach-024", userId: "user-010", gameId: "game-010", gameName: "Skybound Horizons",   name: "High Flyer",           description: "Reached the highest point on the map.",             icon: "🦅", rarity: "UNCOMMON",  unlockedAt: pastDate(5) },
+    { id: "ach-025", userId: "user-010", gameId: "game-008", gameName: "Warfront Tactics",    name: "Strategic Mind",        description: "Won 10 matches using only defensive units.",        icon: "🧠", rarity: "RARE",      unlockedAt: pastDate(8) },
+  ].map((a) => ({
+    ...a,
+    owner: OWNER,
+    createdAt: now,
+    updatedAt: now,
+  }));
 }
 
 function generateActivities(users, games) {
@@ -862,7 +979,7 @@ async function main() {
   console.log("🔍 Discovering Amplify-generated DynamoDB tables...");
   const tableMap = await discoverTableNames();
 
-  const requiredModels = ["User", "Game", "PlayerStats", "Activity"];
+  const requiredModels = ["User", "Game", "PlayerStats", "Activity", "GameStats", "Achievement"];
   const missing = requiredModels.filter((m) => !tableMap[m]);
 
   if (missing.length > 0) {
@@ -899,8 +1016,10 @@ async function main() {
   const games = generateGames();
   const playerStats = generatePlayerStats(users);
   const activities = generateActivities(users, games);
+  const gameStatsList = generateGameStats(users, games);
+  const achievements = generateAchievements(users, games);
 
-  // Write in dependency order: Users first, then Games, PlayerStats & Activities
+  // Write in dependency order: Users first, then Games, then child tables
   console.log("📝 Seeding User table...");
   const usersWritten = await batchWriteItems(tableMap.User, users);
   console.log(`   ✓ ${usersWritten} users written\n`);
@@ -917,8 +1036,16 @@ async function main() {
   const activitiesWritten = await batchWriteItems(tableMap.Activity, activities);
   console.log(`   ✓ ${activitiesWritten} activities written\n`);
 
+  console.log("📝 Seeding GameStats table...");
+  const gameStatsWritten = await batchWriteItems(tableMap.GameStats, gameStatsList);
+  console.log(`   ✓ ${gameStatsWritten} game stats written\n`);
+
+  console.log("📝 Seeding Achievement table...");
+  const achievementsWritten = await batchWriteItems(tableMap.Achievement, achievements);
+  console.log(`   ✓ ${achievementsWritten} achievements written\n`);
+
   console.log("✅ Seed complete!");
-  console.log(`   Total items: ${usersWritten + gamesWritten + statsWritten + activitiesWritten}`);
+  console.log(`   Total items: ${usersWritten + gamesWritten + statsWritten + activitiesWritten + gameStatsWritten + achievementsWritten}`);
   console.log(`\n💡 To remove this data run: node scripts/seed-dynamodb-data.js --delete`);
 }
 
