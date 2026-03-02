@@ -13,7 +13,7 @@ export default function Profile() {
 
     const isOwnProfile = !playerId || playerId === userProfile?.id;
 
-     debugLog('Rendering Profile page for playerId:', playerId, 'isOwnProfile:', isOwnProfile);
+    debugLog('Rendering Profile page for playerId:', playerId, 'isOwnProfile:', isOwnProfile);
 
     return (
     <div className="space-y-6 animate-fade-in">
@@ -35,7 +35,7 @@ export default function Profile() {
         <div className="lg:col-span-1">
           <PlayerInfo
             user={userProfile || null}
-            loading={loading}
+            isLoading={loading}
             isOwnProfile={isOwnProfile}
           />
 
@@ -74,13 +74,13 @@ export default function Profile() {
           {/* Game Stats Table */}
           <GameStatsTable
             gameStats={gameStats || []}
-            loading={loading}
+            isLoading={loading}
           />
 
           {/* Achievement Grid */}
           <AchievementGrid
             achievements={achievements || []}
-            loading={loading}
+            isLoading={loading}
           />
         </div>
       </div>

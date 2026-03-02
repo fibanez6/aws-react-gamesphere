@@ -1,11 +1,11 @@
 import { clsx } from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
-import type { DashboardActivity } from '../../hooks/useDashboard';
+import type { PlayerActivities } from '../../hooks/useDashboard';
 import Avatar from '../common/Avatar';
 import { ListItemSkeleton } from '../common/Skeleton';
 
 interface RecentActivityFeedProps {
-  activities: DashboardActivity[];
+  activities: PlayerActivities[];
   isLoading: boolean;
 }
 
@@ -45,7 +45,7 @@ export default function RecentActivityFeed({ activities, isLoading }: RecentActi
   );
 }
 
-function ActivityItem({ activity }: { activity: DashboardActivity }) {
+function ActivityItem({ activity }: { activity: PlayerActivities }) {
   const getActivityIcon = () => {
     switch (activity.type) {
       case 'GAME_PLAYED':
@@ -110,7 +110,7 @@ function ActivityItem({ activity }: { activity: DashboardActivity }) {
   );
 }
 
-function getActivityDescription(activity: DashboardActivity): string {
+function getActivityDescription(activity: PlayerActivities): string {
   // Use description if available, otherwise derive from type
   if (activity.description) {
     return activity.description;

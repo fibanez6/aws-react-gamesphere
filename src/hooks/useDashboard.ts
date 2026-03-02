@@ -23,7 +23,7 @@ const DASHBOARD_SELECTION_SET = [
 ] as const;
 
 type PlayerProfile = SelectionSet<User, typeof DASHBOARD_SELECTION_SET>;
-type PlayerActivities = PlayerProfile['activities'][number];
+export type PlayerActivities = PlayerProfile['activities'][number];
 type PlayerStats = Omit<PlayerProfile['stats'], 'user'> & { hoursThisWeek: number };
 type PlayerTopGame = Pick<Schema['Game']['type'], 'id' | 'name' | 'coverImage' | 'genre' | 'platforms' | 'activePlayers' | 'rating'>;
 

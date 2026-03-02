@@ -1,10 +1,12 @@
-import { User } from '../../types';
+import type { User } from '../../types';
 import Avatar from '../common/Avatar';
 import { RankBadge } from '../common/Badge';
 import Skeleton from '../common/Skeleton';
 
+type PlayerInfoUser = Pick<User, 'username' | 'avatar' | 'rank' | 'xp' | 'level' | 'status'>;
+
 interface PlayerInfoProps {
-  user: User | null;
+  user: PlayerInfoUser | null;
   isLoading: boolean;
   isOwnProfile?: boolean;
   onEditProfile?: () => void;
@@ -29,7 +31,7 @@ export default function PlayerInfo({
   }
 
   const xp = user.xp ?? 0;
-  const xpToNextLevel = user.xpToNextLevel ?? 1000;
+  const xpToNextLevel = 1000;
   const xpPercentage = (xp / xpToNextLevel) * 100;
 
   return (
@@ -38,10 +40,10 @@ export default function PlayerInfo({
         {/* Avatar */}
         <div className="relative">
           <Avatar
-            src={user.avatar}
+            src={user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
             alt={user.username}
             size="xl"
-            isOnline={user.isOnline}
+            isOnline={user.status === 'ONLINE'}
             showStatus
           />
           {isOwnProfile && (
@@ -57,7 +59,7 @@ export default function PlayerInfo({
         {/* Username & Rank */}
         <h2 className="text-2xl font-bold mt-4">{user.username}</h2>
         <div className="flex items-center gap-2 mt-2">
-          <RankBadge rank={user.rank} />
+          <RankBadge rank={user.rank ?? 'Unranked'} />
           <span className="text-dark-400">•</span>
           <span className="text-dark-400">Level {user.level ?? 1}</span>
         </div>
@@ -81,9 +83,9 @@ export default function PlayerInfo({
 
         {/* Profile Status */}
         <div className="flex items-center gap-2 mt-4">
-          <span className={user.isOnline ? 'online-indicator' : 'offline-indicator'} />
+          <span className={user.status === 'ONLINE' ? 'online-indicator' : 'offline-indicator'} />
           <span className="text-sm text-dark-400">
-            {user.isOnline ? 'Online' : 'Offline'}
+            {user.status === 'ONLINE' ? 'Online' : 'Offline'}
           </span>
         </div>
 

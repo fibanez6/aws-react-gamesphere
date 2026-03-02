@@ -1,0 +1,3 @@
+fix avatar
+
+refactor 'export type PlayerActivities'
