@@ -9,7 +9,11 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "amp:sandbox": "npx ampx sandbox",
-    "amp:sandbox:delete": "npx ampx sandbox delete"
+    "amp:sandbox:delete": "npx ampx sandbox delete",
+    "seed": "node scripts/seed-dynamodb-data.js",
+    "seed:delete": "node scripts/seed-dynamodb-data.js --delete",
+    "seed:users": "node scripts/seed-cognito-user.js",
+    "seed:users:delete": "node scripts/seed-cognito-user.js --delete"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "~6.13.2",
@@ -29,6 +33,9 @@
   "devDependencies": {
     "@aws-amplify/backend": "~1.19.0",
     "@aws-amplify/backend-cli": "~1.8.1",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1000.0",
+    "@aws-sdk/client-dynamodb": "^3.1000.0",
+    "@aws-sdk/lib-dynamodb": "^3.1000.0",
     "@eslint/compat": "~2.0.1",
     "@eslint/eslintrc": "~3.3.3",
     "@eslint/js": "~9.39.2",

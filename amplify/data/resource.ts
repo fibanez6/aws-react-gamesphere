@@ -16,8 +16,59 @@ const schema = a.schema({
       xp: a.integer().required().default(0),
       level: a.integer().required().default(1),
       status: a.enum(["ONLINE", "OFFLINE", "IN_GAME", "AWAY"]),
+      stats: a.hasOne('PlayerStats', 'userId'),
+      activities: a.hasMany('Activity', 'userId'),
     })
     .authorization((allow) => [allow.owner()]),
+
+  Game: a
+    .model({
+      name: a.string().required(),
+      genre: a.string().required(),
+      coverImage: a.string().required(),
+      rating: a.float().required(),
+      activePlayers: a.integer().required(),
+      platforms: a.string().required().array().required(),
+      releaseDate: a.date(),
+      developer: a.string(),
+      publisher: a.string(),
+      activities: a.hasMany('Activity', 'gameId'),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  PlayerStats: a
+    .model({
+      userId: a.id().required(),
+      user: a.belongsTo('User', 'userId'),
+      gamesOwned: a.integer().required().default(0),
+      achievementsUnlocked: a.integer().required().default(0),
+      totalHoursPlayed: a.float().required().default(0),
+      totalAchievements: a.integer().required().default(0),
+      totalWins: a.integer().required().default(0),
+      totalMatches: a.integer().required().default(0),
+      winRate: a.float().required().default(0),
+      weeklyPlaytime: a.float().required().array().required(),
+      monthlyPlaytime: a.float().required().array().required(),
+      currentStreak: a.integer().required().default(0),
+      longestStreak: a.integer().required().default(0),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  Activity: a
+    .model({
+      userId: a.id().required(),
+      user: a.belongsTo('User', 'userId'),
+      username: a.string().required(),
+      avatar: a.string(),
+      type: a.enum(["GAME_PLAYED", "ACHIEVEMENT_UNLOCKED", "FRIEND_ADDED", "LEVEL_UP", "RANK_UP"]),
+      title: a.string().required(),
+      description: a.string(),
+      gameId: a.id(),
+      game: a.belongsTo('Game', 'gameId'),
+      gameName: a.string(),
+      gameCover: a.string(),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
