@@ -18,6 +18,8 @@ const schema = a.schema({
       status: a.enum(["ONLINE", "OFFLINE", "IN_GAME", "AWAY"]),
       stats: a.hasOne('PlayerStats', 'userId'),
       activities: a.hasMany('Activity', 'userId'),
+      gameStats: a.hasMany('GameStats', 'userId'),
+      achievements: a.hasMany('Achievement', 'userId'),
     })
     .authorization((allow) => [allow.owner()]),
 
@@ -33,6 +35,8 @@ const schema = a.schema({
       developer: a.string(),
       publisher: a.string(),
       activities: a.hasMany('Activity', 'gameId'),
+      gameStats: a.hasMany('GameStats', 'gameId'),
+      achievements: a.hasMany('Achievement', 'gameId'),
     })
     .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
 
@@ -67,6 +71,39 @@ const schema = a.schema({
       game: a.belongsTo('Game', 'gameId'),
       gameName: a.string(),
       gameCover: a.string(),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  GameStats: a
+    .model({
+      userId: a.id().required(),
+      user: a.belongsTo('User', 'userId'),
+      gameId: a.id().required(),
+      game: a.belongsTo('Game', 'gameId'),
+      gameName: a.string().required(),
+      gameCover: a.string(),
+      hoursPlayed: a.float().required().default(0),
+      lastPlayed: a.datetime().required(),
+      rank: a.enum(["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER"]),
+      winRate: a.float().required().default(0),
+      totalMatches: a.integer().required().default(0),
+      wins: a.integer().required().default(0),
+      losses: a.integer().required().default(0),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  Achievement: a
+    .model({
+      userId: a.id().required(),
+      user: a.belongsTo('User', 'userId'),
+      gameId: a.id(),
+      game: a.belongsTo('Game', 'gameId'),
+      name: a.string().required(),
+      description: a.string().required(),
+      icon: a.string().required(),
+      rarity: a.enum(["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"]),
+      unlockedAt: a.datetime(),
+      gameName: a.string(),
     })
     .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
 });
