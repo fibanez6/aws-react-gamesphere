@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "amp:sandbox": "npx ampx sandbox",
     "amp:sandbox:delete": "npx ampx sandbox delete",
-    "seed": "node scripts/seed-dynamodb-data.js",
-    "seed:delete": "node scripts/seed-dynamodb-data.js --delete",
+    "seed:data": "node scripts/seed-dynamodb-data.js",
+    "seed:data:delete": "node scripts/seed-dynamodb-data.js --delete",
     "seed:users": "node scripts/seed-cognito-user.js",
     "seed:users:delete": "node scripts/seed-cognito-user.js --delete"
   },

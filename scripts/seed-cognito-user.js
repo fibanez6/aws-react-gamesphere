@@ -12,15 +12,15 @@
  */
 
 import {
-  CognitoIdentityProviderClient,
   AdminCreateUserCommand,
-  AdminSetUserPasswordCommand,
-  AdminGetUserCommand,
   AdminDeleteUserCommand,
+  AdminGetUserCommand,
+  AdminSetUserPasswordCommand,
+  CognitoIdentityProviderClient,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -78,7 +78,7 @@ async function userExists(email) {
 
 async function createUser({ email, password }) {
   // 1. Create the user (suppress welcome email)
-  await cognitoClient.send(
+  const { User } = await cognitoClient.send(
     new AdminCreateUserCommand({
       UserPoolId: USER_POOL_ID,
       Username: email,
@@ -99,6 +99,9 @@ async function createUser({ email, password }) {
       Permanent: true,
     })
   );
+
+  const sub = User.Attributes.find((a) => a.Name === "sub")?.Value;
+  return sub;
 }
 
 async function deleteUser(email) {
@@ -140,8 +143,8 @@ async function main() {
       console.log(`   ⏭ ${user.email} — already exists, skipping`);
       continue;
     }
-    await createUser(user);
-    console.log(`   ✓ ${user.email} — created & confirmed`);
+    const sub = await createUser(user);
+    console.log(`   ✓ ${user.email} — created & confirmed (sub: ${sub})`);
   }
 
   console.log("\n✅ All users ready!");
