@@ -58,6 +58,17 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: AUTH_REGION })
 // The 3 Cognito test users created by seed-cognito-user.js
 const COGNITO_TEST_EMAILS = ["test@test.com", "friend01@test.com", "friend02@test.com"];
 
+// Synthetic users (no Cognito account) for leaderboard population
+const SYNTHETIC_USERS = [
+  { id: "synth-user-001", email: "novablitz@fake.com",    username: "NovaBlitz",    rank: "GOLD",        xp: 14200, level: 28, status: "ONLINE" },
+  { id: "synth-user-002", email: "shadowfang@fake.com",   username: "ShadowFang",   rank: "PLATINUM",    xp: 19800, level: 38, status: "OFFLINE" },
+  { id: "synth-user-003", email: "ironvexa@fake.com",     username: "IronVexa",     rank: "SILVER",      xp: 9500,  level: 22, status: "AWAY" },
+  { id: "synth-user-004", email: "zephyrblade@fake.com",  username: "ZephyrBlade",  rank: "DIAMOND",     xp: 27000, level: 48, status: "IN_GAME" },
+  { id: "synth-user-005", email: "crimsonecho@fake.com",  username: "CrimsonEcho",  rank: "BRONZE",      xp: 4800,  level: 15, status: "OFFLINE" },
+  { id: "synth-user-006", email: "astralwolf@fake.com",   username: "AstralWolf",   rank: "MASTER",      xp: 33500, level: 58, status: "ONLINE" },
+  { id: "synth-user-007", email: "pixelduke@fake.com",    username: "PixelDuke",    rank: "GOLD",        xp: 15000, level: 30, status: "OFFLINE" },
+];
+
 /**
  * Looks up each test email in Cognito and returns [{ email, sub }, ...]
  */
@@ -109,6 +120,7 @@ async function discoverTableNames() {
       else if (/^GameStats-/i.test(name)) tableMap.GameStats = name;
       else if (/^Achievement-/i.test(name)) tableMap.Achievement = name;
       else if (/^Friendship-/i.test(name)) tableMap.Friendship = name;
+      else if (/^LeaderboardEntry-/i.test(name)) tableMap.LeaderboardEntry = name;
     }
     exclusiveStartTableName = LastEvaluatedTableName;
   } while (exclusiveStartTableName);
@@ -437,6 +449,174 @@ function generateAchievements(users, games) {
   }));
 }
 
+/**
+ * Generate the 7 synthetic User records (no Cognito account, no friends).
+ */
+function generateSyntheticUsers() {
+  return SYNTHETIC_USERS.map((u) => ({
+    id: u.id,
+    email: u.email,
+    username: u.username,
+    avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.username}`,
+    rank: u.rank,
+    xp: u.xp,
+    level: u.level,
+    status: u.status,
+    owner: OWNER,
+    createdAt: now,
+    updatedAt: now,
+  }));
+}
+
+/**
+ * Generate PlayerStats for synthetic users.
+ */
+function generateSyntheticPlayerStats(synthUsers) {
+  const data = [
+    { gamesOwned: 25, achievementsUnlocked: 130, totalHoursPlayed:  820.3, totalAchievements: 250, totalWins: 185, totalMatches: 340, winRate: 54.4, currentStreak: 3,  longestStreak: 9  },
+    { gamesOwned: 40, achievementsUnlocked: 275, totalHoursPlayed: 1550.0, totalAchievements: 400, totalWins: 390, totalMatches: 610, winRate: 63.9, currentStreak: 8,  longestStreak: 18 },
+    { gamesOwned: 18, achievementsUnlocked:  85, totalHoursPlayed:  480.5, totalAchievements: 180, totalWins: 110, totalMatches: 250, winRate: 44.0, currentStreak: 1,  longestStreak: 6  },
+    { gamesOwned: 52, achievementsUnlocked: 390, totalHoursPlayed: 2600.2, totalAchievements: 520, totalWins: 580, totalMatches: 850, winRate: 68.2, currentStreak: 10, longestStreak: 20 },
+    { gamesOwned: 12, achievementsUnlocked:  45, totalHoursPlayed:  210.0, totalAchievements: 100, totalWins:  55, totalMatches: 150, winRate: 36.7, currentStreak: 0,  longestStreak: 4  },
+    { gamesOwned: 58, achievementsUnlocked: 510, totalHoursPlayed: 3500.1, totalAchievements: 700, totalWins: 820, totalMatches: 1150, winRate: 71.3, currentStreak: 14, longestStreak: 25 },
+    { gamesOwned: 28, achievementsUnlocked: 155, totalHoursPlayed:  950.7, totalAchievements: 280, totalWins: 210, totalMatches: 400, winRate: 52.5, currentStreak: 2,  longestStreak: 8  },
+  ];
+  return synthUsers.map((u, i) => {
+    const d = data[i];
+    const weeklyPlaytime = Array.from({ length: 7 }, () => parseFloat((Math.random() * 5 + 0.5).toFixed(1)));
+    const monthlyPlaytime = Array.from({ length: 12 }, () => parseFloat((Math.random() * 120 + 20).toFixed(1)));
+    return {
+      id: `stats-${u.id}`,
+      userId: u.id,
+      ...d,
+      weeklyPlaytime,
+      monthlyPlaytime,
+      owner: OWNER,
+      createdAt: now,
+      updatedAt: now,
+    };
+  });
+}
+
+/**
+ * Generate GameStats for synthetic users.
+ */
+function generateSyntheticGameStats(synthUsers, games) {
+  const pastDate = (daysAgo) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString(); };
+  const ranks = ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER"];
+  // [synthUserIndex, gameIndex, hours, daysAgo, rankIdx, winRate, matches, wins, losses]
+  const raw = [
+    [0, 0, 180.0, 1, 2, 56.0, 90,  50, 40],
+    [0, 1, 140.3, 0, 2, 51.0, 80,  41, 39],
+    [0, 8, 100.0, 3, 1, 48.0, 60,  29, 31],
+    [1, 2, 350.0, 0, 3, 65.0, 200, 130, 70],
+    [1, 1, 280.0, 1, 4, 62.0, 170, 105, 65],
+    [1, 9, 200.0, 2, 3, 60.0, 120, 72,  48],
+    [2, 0, 120.0, 5, 1, 42.0, 70,  29, 41],
+    [2, 4, 100.5, 3, 1, 45.0, 60,  27, 33],
+    [3, 2, 550.0, 0, 4, 70.0, 300, 210, 90],
+    [3, 0, 420.2, 1, 4, 67.0, 240, 161, 79],
+    [3, 5, 380.0, 2, 4, 66.0, 200, 132, 68],
+    [3, 9, 310.0, 0, 3, 64.0, 180, 115, 65],
+    [4, 1,  80.0, 7, 0, 35.0, 50,  18, 32],
+    [4, 8,  55.0, 4, 0, 38.0, 40,  15, 25],
+    [5, 2, 800.0, 0, 5, 73.0, 500, 365, 135],
+    [5, 0, 600.5, 1, 5, 70.0, 350, 245, 105],
+    [5, 9, 480.0, 0, 4, 68.0, 280, 190, 90],
+    [5, 5, 420.6, 2, 5, 72.0, 250, 180, 70],
+    [5, 7, 350.0, 3, 4, 69.0, 220, 152, 68],
+    [6, 0, 220.0, 2, 2, 54.0, 120, 65, 55],
+    [6, 3, 180.7, 1, 2, 50.0, 100, 50, 50],
+    [6, 6,  90.0, 5, 1, 55.0, 50,  28, 22],
+  ];
+  return raw.map(([ui, gi, hours, daysAgo, ri, wr, tm, w, l], idx) => ({
+    id: `synth-gamestats-${String(idx + 1).padStart(3, "0")}`,
+    userId: synthUsers[ui].id,
+    gameId: games[gi].id,
+    gameName: games[gi].name,
+    gameCover: games[gi].coverImage,
+    hoursPlayed: hours,
+    lastPlayed: pastDate(daysAgo),
+    rank: ranks[ri],
+    winRate: wr,
+    totalMatches: tm,
+    wins: w,
+    losses: l,
+    owner: OWNER,
+    createdAt: now,
+    updatedAt: now,
+  }));
+}
+
+/**
+ * Generate LeaderboardEntry records for ALL users (Cognito + synthetic).
+ * Creates entries for DAILY, MONTHLY, and ALL_TIME periods.
+ */
+function generateLeaderboardEntries(allUsers, allPlayerStats, allGameStats, games) {
+  const entries = [];
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+  const allTimeStart = new Date("2024-01-01T00:00:00.000Z");
+
+  const periodConfigs = [
+    { period: "DAILY",    periodStart: todayStart.toISOString(),   hoursFactor: 0.03, winsFactor: 0.05, achFactor: 0.02 },
+    { period: "MONTHLY",  periodStart: monthStart.toISOString(),   hoursFactor: 0.25, winsFactor: 0.30, achFactor: 0.20 },
+    { period: "ALL_TIME", periodStart: allTimeStart.toISOString(), hoursFactor: 1.0,  winsFactor: 1.0,  achFactor: 1.0  },
+  ];
+
+  let idx = 0;
+
+  for (const user of allUsers) {
+    const stats = allPlayerStats.find((s) => s.userId === user.id);
+    if (!stats) continue;
+
+    for (const pc of periodConfigs) {
+      // Global entry (no gameId)
+      idx++;
+      entries.push({
+        id: `lb-${String(idx).padStart(4, "0")}`,
+        userId: user.id,
+        period: pc.period,
+        gameId: undefined,
+        gameName: undefined,
+        hoursPlayed: parseFloat((stats.totalHoursPlayed * pc.hoursFactor).toFixed(1)),
+        wins: Math.round(stats.totalWins * pc.winsFactor),
+        achievementsUnlocked: Math.round(stats.achievementsUnlocked * pc.achFactor),
+        winRate: stats.winRate,
+        totalMatches: Math.round(stats.totalMatches * pc.winsFactor),
+        periodStart: pc.periodStart,
+        owner: OWNER,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Per-game entries
+      const userGameStats = allGameStats.filter((gs) => gs.userId === user.id);
+      for (const gs of userGameStats) {
+        idx++;
+        entries.push({
+          id: `lb-${String(idx).padStart(4, "0")}`,
+          userId: user.id,
+          period: pc.period,
+          gameId: gs.gameId,
+          gameName: gs.gameName,
+          hoursPlayed: parseFloat((gs.hoursPlayed * pc.hoursFactor).toFixed(1)),
+          wins: Math.round(gs.wins * pc.winsFactor),
+          achievementsUnlocked: 0,
+          winRate: gs.winRate,
+          totalMatches: Math.round(gs.totalMatches * pc.winsFactor),
+          periodStart: pc.periodStart,
+          owner: OWNER,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+  }
+
+  return entries;
+}
+
 function generateFriendships(users) {
   const pastDate = (daysAgo) => {
     const d = new Date();
@@ -762,7 +942,7 @@ async function main() {
   console.log("🔍 Discovering Amplify-generated DynamoDB tables...");
   const tableMap = await discoverTableNames();
 
-  const requiredModels = ["User", "Game", "PlayerStats", "Activity", "GameStats", "Achievement", "Friendship"];
+  const requiredModels = ["User", "Game", "PlayerStats", "Activity", "GameStats", "Achievement", "Friendship", "LeaderboardEntry"];
   const missing = requiredModels.filter((m) => !tableMap[m]);
 
   if (missing.length > 0) {
@@ -802,25 +982,32 @@ async function main() {
   }
   console.log();
 
-  const users = generateUsers(cognitoUsers);
+  const cognitoUserRecords = generateUsers(cognitoUsers);
+  const synthUserRecords = generateSyntheticUsers();
+  const allUserRecords = [...cognitoUserRecords, ...synthUserRecords];
   const games = generateGames();
-  const playerStats = generatePlayerStats(users);
-  const activities = generateActivities(users, games);
-  const gameStatsList = generateGameStats(users, games);
-  const achievements = generateAchievements(users, games);
-  const friendships = generateFriendships(users);
+  const playerStats = generatePlayerStats(cognitoUserRecords);
+  const synthPlayerStats = generateSyntheticPlayerStats(synthUserRecords);
+  const allPlayerStats = [...playerStats, ...synthPlayerStats];
+  const activities = generateActivities(cognitoUserRecords, games);
+  const gameStatsList = generateGameStats(cognitoUserRecords, games);
+  const synthGameStatsList = generateSyntheticGameStats(synthUserRecords, games);
+  const allGameStats = [...gameStatsList, ...synthGameStatsList];
+  const achievements = generateAchievements(cognitoUserRecords, games);
+  const friendships = generateFriendships(cognitoUserRecords);
+  const leaderboardEntries = generateLeaderboardEntries(allUserRecords, allPlayerStats, allGameStats, games);
 
   // Write in dependency order: Users first, then Games, then child tables
   console.log("📝 Seeding User table...");
-  const usersWritten = await batchWriteItems(tableMap.User, users);
-  console.log(`   ✓ ${usersWritten} users written\n`);
+  const usersWritten = await batchWriteItems(tableMap.User, allUserRecords);
+  console.log(`   ✓ ${usersWritten} users written (${cognitoUserRecords.length} Cognito + ${synthUserRecords.length} synthetic)\n`);
 
   console.log("📝 Seeding Game table...");
   const gamesWritten = await batchWriteItems(tableMap.Game, games);
   console.log(`   ✓ ${gamesWritten} games written\n`);
 
   console.log("📝 Seeding PlayerStats table...");
-  const statsWritten = await batchWriteItems(tableMap.PlayerStats, playerStats);
+  const statsWritten = await batchWriteItems(tableMap.PlayerStats, allPlayerStats);
   console.log(`   ✓ ${statsWritten} player stats written\n`);
 
   console.log("📝 Seeding Activity table...");
@@ -828,7 +1015,7 @@ async function main() {
   console.log(`   ✓ ${activitiesWritten} activities written\n`);
 
   console.log("📝 Seeding GameStats table...");
-  const gameStatsWritten = await batchWriteItems(tableMap.GameStats, gameStatsList);
+  const gameStatsWritten = await batchWriteItems(tableMap.GameStats, allGameStats);
   console.log(`   ✓ ${gameStatsWritten} game stats written\n`);
 
   console.log("📝 Seeding Achievement table...");
@@ -839,8 +1026,13 @@ async function main() {
   const friendshipsWritten = await batchWriteItems(tableMap.Friendship, friendships);
   console.log(`   ✓ ${friendshipsWritten} friendships written\n`);
 
+  console.log("📝 Seeding LeaderboardEntry table...");
+  const lbWritten = await batchWriteItems(tableMap.LeaderboardEntry, leaderboardEntries);
+  console.log(`   ✓ ${lbWritten} leaderboard entries written\n`);
+
+  const total = usersWritten + gamesWritten + statsWritten + activitiesWritten + gameStatsWritten + achievementsWritten + friendshipsWritten + lbWritten;
   console.log("✅ Seed complete!");
-  console.log(`   Total items: ${usersWritten + gamesWritten + statsWritten + activitiesWritten + gameStatsWritten + achievementsWritten + friendshipsWritten}`);
+  console.log(`   Total items: ${total}`);
   console.log(`\n💡 To remove this data run: node scripts/seed-dynamodb-data.js --delete`);
 }
 
