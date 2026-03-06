@@ -121,6 +121,9 @@ async function discoverTableNames() {
       else if (/^Achievement-/i.test(name)) tableMap.Achievement = name;
       else if (/^Friendship-/i.test(name)) tableMap.Friendship = name;
       else if (/^LeaderboardEntry-/i.test(name)) tableMap.LeaderboardEntry = name;
+      else if (/^LiveSession-/i.test(name)) tableMap.LiveSession = name;
+      else if (/^ChatRoom-/i.test(name)) tableMap.ChatRoom = name;
+      else if (/^ChatMessage-/i.test(name)) tableMap.ChatMessage = name;
     }
     exclusiveStartTableName = LastEvaluatedTableName;
   } while (exclusiveStartTableName);
@@ -837,6 +840,191 @@ function generateActivities(users, games) {
   ];
 }
 
+/**
+ * Generate LiveSession records — active sessions for friend01 and friend02.
+ */
+function generateLiveSessions(users, games) {
+  const minutesAgo = (m) => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - m);
+    return d.toISOString();
+  };
+
+  return [
+    {
+      id: "session-001",
+      hostId: users[1].id,            // LunaCipher
+      gameId: games[1].id,            // CyberStrike 2077
+      gameName: games[1].name,
+      gameCover: games[1].coverImage,
+      sessionStatus: "ACTIVE",
+      maxPlayers: 4,
+      currentPlayers: 1,
+      startedAt: minutesAgo(35),
+      endedAt: undefined,
+      title: "Ranked grind — need 1 more",
+      participantIds: [users[1].id],
+      owner: OWNER,
+      createdAt: minutesAgo(35),
+      updatedAt: minutesAgo(35),
+    },
+    {
+      id: "session-002",
+      hostId: users[2].id,            // KaiPhoenix
+      gameId: games[2].id,            // Dragon's Ascent
+      gameName: games[2].name,
+      gameCover: games[2].coverImage,
+      sessionStatus: "ACTIVE",
+      maxPlayers: 6,
+      currentPlayers: 2,
+      startedAt: minutesAgo(12),
+      endedAt: undefined,
+      title: "Chill co-op dungeon run",
+      participantIds: [users[2].id, users[1].id],
+      owner: OWNER,
+      createdAt: minutesAgo(12),
+      updatedAt: minutesAgo(5),
+    },
+    // An ended session for history
+    {
+      id: "session-003",
+      hostId: users[1].id,            // LunaCipher
+      gameId: games[8].id,            // Neon Arena
+      gameName: games[8].name,
+      gameCover: games[8].coverImage,
+      sessionStatus: "ENDED",
+      maxPlayers: 4,
+      currentPlayers: 3,
+      startedAt: minutesAgo(180),
+      endedAt: minutesAgo(90),
+      title: "Battle royale with friends",
+      participantIds: [users[1].id, users[0].id, users[2].id],
+      owner: OWNER,
+      createdAt: minutesAgo(180),
+      updatedAt: minutesAgo(90),
+    },
+  ];
+}
+
+/**
+ * Generate ChatRoom records — session chats + a direct chat.
+ */
+function generateChatRooms(users, sessions) {
+  const minutesAgo = (m) => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - m);
+    return d.toISOString();
+  };
+
+  return [
+    // Session chat for session-001
+    {
+      id: "chatroom-001",
+      name: "CyberStrike Session",
+      sessionId: sessions[0].id,
+      participantIds: [users[1].id],
+      lastMessageAt: minutesAgo(33),
+      lastMessagePreview: "Just started — join up!",
+      owner: OWNER,
+      createdAt: minutesAgo(35),
+      updatedAt: minutesAgo(33),
+    },
+    // Session chat for session-002
+    {
+      id: "chatroom-002",
+      name: "Dragon's Ascent Co-op",
+      sessionId: sessions[1].id,
+      participantIds: [users[2].id, users[1].id],
+      lastMessageAt: minutesAgo(3),
+      lastMessagePreview: "Ready for the boss fight?",
+      owner: OWNER,
+      createdAt: minutesAgo(12),
+      updatedAt: minutesAgo(3),
+    },
+    // Direct chat between AlexStorm & LunaCipher
+    {
+      id: "chatroom-003",
+      name: null,
+      sessionId: null,
+      participantIds: [users[0].id, users[1].id],
+      lastMessageAt: minutesAgo(15),
+      lastMessagePreview: "gg, nice game!",
+      owner: OWNER,
+      createdAt: minutesAgo(120),
+      updatedAt: minutesAgo(15),
+    },
+    // Direct chat between AlexStorm & KaiPhoenix
+    {
+      id: "chatroom-004",
+      name: null,
+      sessionId: null,
+      participantIds: [users[0].id, users[2].id],
+      lastMessageAt: minutesAgo(60),
+      lastMessagePreview: "Wanna play later tonight?",
+      owner: OWNER,
+      createdAt: minutesAgo(200),
+      updatedAt: minutesAgo(60),
+    },
+  ];
+}
+
+/**
+ * Generate ChatMessage records for each chat room.
+ */
+function generateChatMessages(chatRooms, users) {
+  const minutesAgo = (m) => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - m);
+    return d.toISOString();
+  };
+
+  const messages = [];
+  let idx = 0;
+
+  // Helper to push a message
+  const add = (chatRoomId, sender, body, minsAgo, messageType = "TEXT") => {
+    idx++;
+    messages.push({
+      id: `chatmsg-${String(idx).padStart(3, "0")}`,
+      chatRoomId,
+      senderId: sender.id,
+      senderUsername: sender.username,
+      senderAvatar: sender.avatar,
+      body,
+      messageType,
+      owner: OWNER,
+      createdAt: minutesAgo(minsAgo),
+      updatedAt: minutesAgo(minsAgo),
+    });
+  };
+
+  // chatroom-001: CyberStrike Session (LunaCipher solo)
+  add("chatroom-001", users[1], "LunaCipher started a session", 35, "SYSTEM");
+  add("chatroom-001", users[1], "Just started — join up!", 33);
+
+  // chatroom-002: Dragon's Ascent Co-op (KaiPhoenix + LunaCipher)
+  add("chatroom-002", users[2], "KaiPhoenix started a session", 12, "SYSTEM");
+  add("chatroom-002", users[1], "LunaCipher joined the session", 10, "JOIN");
+  add("chatroom-002", users[2], "Hey Luna, let's hit the Ice Caves first", 8);
+  add("chatroom-002", users[1], "Sounds good, I'll go healer", 6);
+  add("chatroom-002", users[2], "Ready for the boss fight?", 3);
+
+  // chatroom-003: Direct chat AlexStorm ↔ LunaCipher
+  add("chatroom-003", users[0], "Hey, wanna do some CyberStrike later?", 90);
+  add("chatroom-003", users[1], "Sure! I'll be on around 8", 85);
+  add("chatroom-003", users[0], "Perfect, I'll set up the lobby", 80);
+  add("chatroom-003", users[1], "That was a sick clutch lol", 20);
+  add("chatroom-003", users[0], "gg, nice game!", 15);
+
+  // chatroom-004: Direct chat AlexStorm ↔ KaiPhoenix
+  add("chatroom-004", users[2], "Yo, I just hit Master rank in Dragon's Ascent!", 180);
+  add("chatroom-004", users[0], "No way, congrats!! 🎉", 175);
+  add("chatroom-004", users[2], "Thanks! Took me like 200 hours lol", 170);
+  add("chatroom-004", users[0], "Wanna play later tonight?", 60);
+
+  return messages;
+}
+
 // ---------------------------------------------------------------------------
 // Batch write helpers
 // ---------------------------------------------------------------------------
@@ -942,7 +1130,7 @@ async function main() {
   console.log("🔍 Discovering Amplify-generated DynamoDB tables...");
   const tableMap = await discoverTableNames();
 
-  const requiredModels = ["User", "Game", "PlayerStats", "Activity", "GameStats", "Achievement", "Friendship", "LeaderboardEntry"];
+  const requiredModels = ["User", "Game", "PlayerStats", "Activity", "GameStats", "Achievement", "Friendship", "LeaderboardEntry", "LiveSession", "ChatRoom", "ChatMessage"];
   const missing = requiredModels.filter((m) => !tableMap[m]);
 
   if (missing.length > 0) {
@@ -996,6 +1184,9 @@ async function main() {
   const achievements = generateAchievements(cognitoUserRecords, games);
   const friendships = generateFriendships(cognitoUserRecords);
   const leaderboardEntries = generateLeaderboardEntries(allUserRecords, allPlayerStats, allGameStats, games);
+  const liveSessions = generateLiveSessions(cognitoUserRecords, games);
+  const chatRooms = generateChatRooms(cognitoUserRecords, liveSessions);
+  const chatMessages = generateChatMessages(chatRooms, cognitoUserRecords);
 
   // Write in dependency order: Users first, then Games, then child tables
   console.log("📝 Seeding User table...");
@@ -1030,7 +1221,19 @@ async function main() {
   const lbWritten = await batchWriteItems(tableMap.LeaderboardEntry, leaderboardEntries);
   console.log(`   ✓ ${lbWritten} leaderboard entries written\n`);
 
-  const total = usersWritten + gamesWritten + statsWritten + activitiesWritten + gameStatsWritten + achievementsWritten + friendshipsWritten + lbWritten;
+  console.log("📝 Seeding LiveSession table...");
+  const liveSessionsWritten = await batchWriteItems(tableMap.LiveSession, liveSessions);
+  console.log(`   ✓ ${liveSessionsWritten} live sessions written\n`);
+
+  console.log("📝 Seeding ChatRoom table...");
+  const chatRoomsWritten = await batchWriteItems(tableMap.ChatRoom, chatRooms);
+  console.log(`   ✓ ${chatRoomsWritten} chat rooms written\n`);
+
+  console.log("📝 Seeding ChatMessage table...");
+  const chatMessagesWritten = await batchWriteItems(tableMap.ChatMessage, chatMessages);
+  console.log(`   ✓ ${chatMessagesWritten} chat messages written\n`);
+
+  const total = usersWritten + gamesWritten + statsWritten + activitiesWritten + gameStatsWritten + achievementsWritten + friendshipsWritten + lbWritten + liveSessionsWritten + chatRoomsWritten + chatMessagesWritten;
   console.log("✅ Seed complete!");
   console.log(`   Total items: ${total}`);
   console.log(`\n💡 To remove this data run: node scripts/seed-dynamodb-data.js --delete`);
