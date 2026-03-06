@@ -358,14 +358,32 @@ function generateGameStats(users, games) {
   // Each entry: [userIndex, gameIndex, hoursPlayed, daysAgoLastPlayed, rankIndex, winRate, totalMatches, wins, losses]
   // userIndex: 0=AlexStorm (test@test.com), 1=LunaCipher (friend01), 2=KaiPhoenix (friend02)
   const raw = [
-    [0, 0, 320.5,  0, 4, 68.2, 220, 150, 70],   // AlexStorm → Stellar Odyssey
-    [0, 1, 180.3,  2, 3, 55.0, 120, 66,  54],    // AlexStorm → CyberStrike
-    [0, 2, 95.0,   5, 2, 72.0, 50,  36,  14],    // AlexStorm → Dragon's Ascent
-    [1, 1, 410.2,  0, 4, 62.5, 340, 212, 128],   // LunaCipher → CyberStrike
-    [1, 5, 250.0,  1, 3, 58.0, 180, 104, 76],    // LunaCipher → Arcane Legends
-    [2, 2, 680.7,  0, 5, 74.3, 450, 334, 116],   // KaiPhoenix → Dragon's Ascent
-    [2, 9, 520.1,  1, 5, 71.0, 380, 270, 110],   // KaiPhoenix → Skybound Horizons
-    [2, 0, 210.0,  3, 4, 66.0, 160, 106, 54],    // KaiPhoenix → Stellar Odyssey
+    // AlexStorm – 7 games
+    [0, 0, 320.5,  0, 4, 68.2, 220, 150, 70],   // Stellar Odyssey
+    [0, 1, 180.3,  2, 3, 55.0, 120,  66, 54],   // CyberStrike
+    [0, 2,  95.0,  5, 2, 72.0,  50,  36, 14],   // Dragon's Ascent
+    [0, 3,  62.4,  7, 2, 48.5,  66,  32, 34],   // Velocity Rush
+    [0, 4,  41.2, 14, 1, 52.0,  25,  13, 12],   // Phantom Realms
+    [0, 7, 110.8,  3, 3, 60.0,  90,  54, 36],   // Warfront Tactics
+    [0, 8,  78.5,  1, 2, 44.3,  70,  31, 39],   // Neon Arena
+
+    // LunaCipher – 6 games
+    [1, 1, 410.2,  0, 4, 62.5, 340, 212, 128],  // CyberStrike
+    [1, 5, 250.0,  1, 3, 58.0, 180, 104,  76],  // Arcane Legends
+    [1, 0, 145.6,  4, 3, 61.0, 100,  61,  39],  // Stellar Odyssey
+    [1, 8, 198.3,  0, 4, 66.8, 220, 147,  73],  // Neon Arena
+    [1, 6,  55.0, 10, 1, 70.0,  30,  21,   9],  // Gravity Shift
+    [1, 4,  88.7,  6, 2, 53.2,  80,  42,  38],  // Phantom Realms
+
+    // KaiPhoenix – 8 games
+    [2, 2, 680.7,  0, 5, 74.3, 450, 334, 116],  // Dragon's Ascent
+    [2, 9, 520.1,  1, 5, 71.0, 380, 270, 110],  // Skybound Horizons
+    [2, 0, 210.0,  3, 4, 66.0, 160, 106,  54],  // Stellar Odyssey
+    [2, 1, 155.9,  2, 3, 59.4, 130,  77,  53],  // CyberStrike
+    [2, 5, 340.0,  1, 5, 72.5, 280, 203,  77],  // Arcane Legends
+    [2, 7, 190.3,  4, 4, 68.0, 200, 136,  64],  // Warfront Tactics
+    [2, 3, 125.0,  8, 3, 55.0, 100,  55,  45],  // Velocity Rush
+    [2, 8, 260.5,  0, 4, 63.7, 310, 198, 112],  // Neon Arena
   ];
 
   return raw.map(([ui, gi, hours, daysAgo, ri, wr, tm, w, l], idx) => ({
