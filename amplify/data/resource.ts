@@ -136,6 +136,43 @@ const schema = a.schema({
       periodStart: a.datetime().required(),
     })
     .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  LiveSession: a
+    .model({
+      hostId: a.id().required(),
+      gameId: a.id().required(),
+      gameName: a.string().required(),
+      gameCover: a.string(),
+      sessionStatus: a.enum(["ACTIVE", "ENDED"]),
+      maxPlayers: a.integer().required().default(4),
+      currentPlayers: a.integer().required().default(1),
+      startedAt: a.datetime().required(),
+      endedAt: a.datetime(),
+      title: a.string(),
+      participantIds: a.string().array(),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  ChatRoom: a
+    .model({
+      name: a.string(),
+      sessionId: a.id(),
+      participantIds: a.string().required().array().required(),
+      lastMessageAt: a.datetime(),
+      lastMessagePreview: a.string(),
+    })
+    .authorization((allow) => [allow.authenticated()]),
+
+  ChatMessage: a
+    .model({
+      chatRoomId: a.id().required(),
+      senderId: a.id().required(),
+      senderUsername: a.string().required(),
+      senderAvatar: a.string(),
+      body: a.string().required(),
+      messageType: a.enum(["TEXT", "SYSTEM", "JOIN", "LEAVE"]),
+    })
+    .authorization((allow) => [allow.authenticated()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
