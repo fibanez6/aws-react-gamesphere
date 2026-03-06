@@ -1,19 +1,14 @@
-import PerformanceTrendChart from '../components/dashboard/PerformanceTrendChart';
-import RecentActivityFeed from '../components/dashboard/RecentActivityFeed';
+import useDashboard from '../hooks/useDashboard';
 import { StatsGrid } from '../components/dashboard/StatsSummaryCard';
+import PerformanceTrendChart from '../components/dashboard/PerformanceTrendChart';
 import TopGameHighlight from '../components/dashboard/TopGameHighlight';
-import { useAuth } from '../context/AuthContext';
-import { mockGames } from '../data/mockData';
-import { useRecentActivities, useUserStats } from '../hooks/useUserStats';
+import QuickStatItem from '../components/dashboard/QuickStatItem';
+import RecentActivityFeed from '../components/dashboard/RecentActivityFeed';
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const { stats, isLoading: statsLoading } = useUserStats(user?.id || '');
-  const { activities, isLoading: activitiesLoading } = useRecentActivities(user?.id || '', 5);
+  const { userProfile, stats, activities, topGame, loading } = useDashboard();
 
-  // Get the most played game this week (mock)
-  const topGame = mockGames[0];
-  const hoursThisWeek = stats?.weeklyPlaytime?.reduce((a, b) => a + b, 0) || 0;
+  if (!userProfile) return null;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -21,26 +16,33 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">
-            Welcome back, <span className="text-gradient">{user?.username}</span>! 👋
+            Welcome back, <span className="text-gradient">{userProfile.username}</span>! 👋
           </h1>
           <p className="text-dark-400 mt-1">Here's what's happening in your gaming world</p>
         </div>
-        <div className="hidden md:flex items-center gap-2 text-sm text-dark-400">
-          <span>Last updated:</span>
-          <span className="text-white">Just now</span>
+        <div className="hidden md:flex items-center gap-4 text-sm text-dark-400">
+          <span className="inline-flex items-center gap-1">
+            🏅 {userProfile.rank}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            ⭐ Level {userProfile.level}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            ✨ {userProfile.xp} XP
+          </span>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <StatsGrid stats={stats} isLoading={statsLoading} />
+      <StatsGrid stats={stats ?? null} isLoading={loading} />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Chart */}
         <div className="lg:col-span-2">
           <PerformanceTrendChart
-            data={stats?.weeklyPlaytime || [0, 0, 0, 0, 0, 0, 0]}
-            isLoading={statsLoading}
+            data={(stats?.weeklyPlaytime as number[]) || [0, 0, 0, 0, 0, 0, 0]}
+            isLoading={loading}
           />
         </div>
 
@@ -48,76 +50,43 @@ export default function Dashboard() {
         <div>
           <TopGameHighlight
             game={topGame}
-            hoursThisWeek={Math.round(hoursThisWeek)}
-            isLoading={statsLoading}
+            hoursThisWeek={Math.round(stats?.hoursThisWeek || 0)}
+            isLoading={loading}
           />
         </div>
       </div>
 
       {/* Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentActivityFeed activities={activities} isLoading={activitiesLoading} />
+        <RecentActivityFeed activities={activities} isLoading={loading} />
 
         {/* Quick Stats */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">Quick Overview</h3>
           <div className="grid grid-cols-2 gap-4">
             <QuickStatItem
-              label="Games This Week"
-              value={stats ? '5' : '-'}
+              label="Games Owned"
+              value={stats?.gamesOwned?.toString() ?? '-'}
               icon="🎮"
-              trend="+2"
             />
             <QuickStatItem
               label="Achievements"
-              value={stats ? '3' : '-'}
+              value={stats?.achievementsUnlocked?.toString() ?? '-'}
               icon="🏆"
-              trend="+3"
             />
             <QuickStatItem
-              label="Friends Online"
-              value="4"
-              icon="👥"
-              isLive
+              label="Current Streak"
+              value={stats?.currentStreak?.toString() ?? '-'}
+              icon="🔥"
             />
             <QuickStatItem
-              label="Messages"
-              value="12"
-              icon="💬"
-              trend="new"
+              label="Win Rate"
+              value={stats ? `${Math.round((stats.winRate || 0) * 100)}%` : '-'}
+              icon="📊"
             />
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-interface QuickStatItemProps {
-  label: string;
-  value: string;
-  icon: string;
-  trend?: string;
-  isLive?: boolean;
-}
-
-function QuickStatItem({ label, value, icon, trend, isLive }: QuickStatItemProps) {
-  return (
-    <div className="bg-dark-700/30 rounded-lg p-4">
-      <div className="flex items-start justify-between">
-        <span className="text-2xl">{icon}</span>
-        {isLive && (
-          <span className="flex items-center gap-1 text-xs text-green-400">
-            <span className="online-indicator scale-75" />
-            Live
-          </span>
-        )}
-        {trend && !isLive && (
-          <span className="text-xs text-green-400">{trend}</span>
-        )}
-      </div>
-      <p className="text-2xl font-bold mt-2">{value}</p>
-      <p className="text-xs text-dark-400">{label}</p>
     </div>
   );
 }

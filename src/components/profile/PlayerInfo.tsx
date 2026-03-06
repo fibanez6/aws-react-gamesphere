@@ -1,10 +1,12 @@
-import { User } from '../../types';
+import type { User } from '../../types';
 import Avatar from '../common/Avatar';
 import { RankBadge } from '../common/Badge';
 import Skeleton from '../common/Skeleton';
 
+type PlayerInfoUser = Pick<User, 'username' | 'avatar' | 'rank' | 'xp' | 'level' | 'status'>;
+
 interface PlayerInfoProps {
-  user: User | null;
+  user: PlayerInfoUser | null;
   isLoading: boolean;
   isOwnProfile?: boolean;
   onEditProfile?: () => void;
@@ -28,7 +30,9 @@ export default function PlayerInfo({
     );
   }
 
-  const xpPercentage = (user.xp / user.xpToNextLevel) * 100;
+  const xp = user.xp ?? 0;
+  const xpToNextLevel = 1000;
+  const xpPercentage = (xp / xpToNextLevel) * 100;
 
   return (
     <div className="card">
@@ -36,10 +40,10 @@ export default function PlayerInfo({
         {/* Avatar */}
         <div className="relative">
           <Avatar
-            src={user.avatar}
+            src={user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
             alt={user.username}
             size="xl"
-            isOnline={user.isOnline}
+            isOnline={user.status === 'ONLINE'}
             showStatus
           />
           {isOwnProfile && (
@@ -55,16 +59,16 @@ export default function PlayerInfo({
         {/* Username & Rank */}
         <h2 className="text-2xl font-bold mt-4">{user.username}</h2>
         <div className="flex items-center gap-2 mt-2">
-          <RankBadge rank={user.rank} />
+          <RankBadge rank={user.rank ?? 'Unranked'} />
           <span className="text-dark-400">•</span>
-          <span className="text-dark-400">Level {user.level}</span>
+          <span className="text-dark-400">Level {user.level ?? 1}</span>
         </div>
 
         {/* XP Progress */}
         <div className="w-full mt-6">
           <div className="flex justify-between text-xs text-dark-400 mb-2">
             <span>XP Progress</span>
-            <span>{user.xp.toLocaleString()} / {user.xpToNextLevel.toLocaleString()}</span>
+            <span>{xp.toLocaleString()} / {xpToNextLevel.toLocaleString()}</span>
           </div>
           <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
             <div
@@ -73,15 +77,15 @@ export default function PlayerInfo({
             />
           </div>
           <p className="text-xs text-dark-500 mt-1">
-            {(user.xpToNextLevel - user.xp).toLocaleString()} XP to Level {user.level + 1}
+            {(xpToNextLevel - xp).toLocaleString()} XP to Level {(user.level ?? 1) + 1}
           </p>
         </div>
 
         {/* Profile Status */}
         <div className="flex items-center gap-2 mt-4">
-          <span className={user.isOnline ? 'online-indicator' : 'offline-indicator'} />
+          <span className={user.status === 'ONLINE' ? 'online-indicator' : 'offline-indicator'} />
           <span className="text-sm text-dark-400">
-            {user.isOnline ? 'Online' : 'Offline'}
+            {user.status === 'ONLINE' ? 'Online' : 'Offline'}
           </span>
         </div>
 

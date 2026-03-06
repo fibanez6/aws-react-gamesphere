@@ -1,125 +1,119 @@
-import { useCallback, useEffect, useState } from 'react';
-import { mockGames } from '../data/mockData';
-import { Game, GameFilter } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import { dataClient } from '../config/amplifyClient';
+import { debugLog } from '../config/environment';
+import { useUser } from '../context/UserContext';
 
-interface UseTopGamesResult {
-  games: Game[];
-  isLoading: boolean;
-  error: Error | null;
-  hasMore: boolean;
-  loadMore: () => void;
-  refetch: () => void;
+export interface TopGameView {
+  gameStatsId: string;
+  gameId: string;
+  gameName: string;
+  gameCover: string | null;
+  hoursPlayed: number;
+  lastPlayed: string;
+  rank: string | null;
+  winRate: number;
+  totalMatches: number;
+  wins: number;
+  losses: number;
 }
 
-export function useTopGames(filter?: GameFilter): UseTopGamesResult {
-  const [games, setGames] = useState<Game[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [nextToken, setNextToken] = useState<string | null>(null);
+interface TopGamesData {
+  games: TopGameView[];
+  isOwner: boolean;
+  isFriend: boolean;
+  targetUsername: string | null;
+}
 
-  const fetchGames = useCallback(async (reset = true) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // In production:
-      // const client = generateClient();
-      // const result = await client.graphql({
-      //   query: listTopGames,
-      //   variables: { filter, limit: 10, nextToken: reset ? null : nextToken }
-      // });
-      // const data = result.data.listTopGames;
-      // setGames(prev => reset ? data.items : [...prev, ...data.items]);
-      // setNextToken(data.nextToken);
+/**
+ * Check whether the logged-in user is an accepted friend of `targetUserId`.
+ */
+async function checkFriendship(loggedInUserId: string, targetUserId: string): Promise<boolean> {
+  // Requester side
+  const { data: asRequester } = await dataClient.models.Friendship.list({
+    filter: {
+      requesterId: { eq: loggedInUserId },
+      addresseeId: { eq: targetUserId },
+      status: { eq: 'ACCEPTED' },
+    },
+  });
+  if (asRequester?.length) return true;
 
-      // For development, use mock data with filtering
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      let filteredGames = [...mockGames];
-      
-      if (filter?.genre) {
-        filteredGames = filteredGames.filter(g => g.genre === filter.genre);
-      }
-      
-      if (filter?.platform) {
-        filteredGames = filteredGames.filter(g => g.platform.includes(filter.platform!));
-      }
-      
-      if (filter?.sortBy === 'activePlayers') {
-        filteredGames.sort((a, b) => b.activePlayers - a.activePlayers);
-      } else if (filter?.sortBy === 'avgPlaytime') {
-        filteredGames.sort((a, b) => b.avgPlaytime - a.avgPlaytime);
-      } else if (filter?.sortBy === 'rating') {
-        filteredGames.sort((a, b) => b.rating - a.rating);
-      }
-      
-      setGames(filteredGames);
-      setNextToken(null);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch games'));
-    } finally {
-      setIsLoading(false);
+  // Addressee side
+  const { data: asAddressee } = await dataClient.models.Friendship.list({
+    filter: {
+      requesterId: { eq: targetUserId },
+      addresseeId: { eq: loggedInUserId },
+      status: { eq: 'ACCEPTED' },
+    },
+  });
+  return (asAddressee?.length ?? 0) > 0;
+}
+
+async function fetchTopGames(
+  targetUserId: string,
+  loggedInUserId: string,
+): Promise<TopGamesData> {
+  const isOwner = targetUserId === loggedInUserId;
+
+  // Resolve target user info
+  const { data: targetUser } = await dataClient.models.User.get({ id: targetUserId });
+  const targetUsername = targetUser?.username ?? null;
+
+  // If not the owner, verify friendship
+  let isFriend = false;
+  if (!isOwner) {
+    isFriend = await checkFriendship(loggedInUserId, targetUserId);
+    if (!isFriend) {
+      debugLog('Top games access denied — not a friend', { loggedInUserId, targetUserId });
+      return { games: [], isOwner: false, isFriend: false, targetUsername };
     }
-  }, [filter]);
+  }
 
-  useEffect(() => {
-    fetchGames(true);
-  }, [fetchGames]);
+  // Fetch all GameStats for the target user
+  const { data: stats, errors } = await dataClient.models.GameStats.list({
+    filter: { userId: { eq: targetUserId } },
+  });
+  if (errors?.length) throw new Error(errors.map((e) => e.message).join(', '));
 
-  const loadMore = useCallback(() => {
-    if (nextToken) {
-      fetchGames(false);
-    }
-  }, [nextToken, fetchGames]);
+  const games: TopGameView[] = (stats ?? [])
+    .sort((a, b) => b.hoursPlayed - a.hoursPlayed)
+    .map((s) => ({
+      gameStatsId: s.id,
+      gameId: s.gameId,
+      gameName: s.gameName,
+      gameCover: s.gameCover ?? null,
+      hoursPlayed: s.hoursPlayed,
+      lastPlayed: s.lastPlayed,
+      rank: s.rank ?? null,
+      winRate: s.winRate,
+      totalMatches: s.totalMatches,
+      wins: s.wins,
+      losses: s.losses,
+    }));
+
+  debugLog('Top games fetched:', { targetUserId, count: games.length });
+
+  return { games, isOwner, isFriend: isOwner || isFriend, targetUsername };
+}
+
+export default function useTopGames(targetUserId?: string) {
+  const { userProfile } = useUser();
+  const loggedInUserId = userProfile?.id;
+  const resolvedUserId = targetUserId || loggedInUserId;
+
+  const { data, isFetching, error, refetch } = useQuery<TopGamesData, Error>({
+    queryKey: ['topGames', resolvedUserId],
+    queryFn: () => fetchTopGames(resolvedUserId!, loggedInUserId!),
+    enabled: !!resolvedUserId && !!loggedInUserId,
+  });
 
   return {
-    games,
-    isLoading,
-    error,
-    hasMore: !!nextToken,
-    loadMore,
-    refetch: () => fetchGames(true),
+    games: data?.games ?? [],
+    isOwner: data?.isOwner ?? true,
+    isFriend: data?.isFriend ?? false,
+    targetUsername: data?.targetUsername ?? null,
+    loading: isFetching,
+    error: error?.message ?? null,
+    refresh: async () => { await refetch(); },
   };
-}
-
-interface UseGameDetailsResult {
-  game: Game | null;
-  isLoading: boolean;
-  error: Error | null;
-}
-
-export function useGameDetails(gameId: string): UseGameDetailsResult {
-  const [game, setGame] = useState<Game | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    const fetchGame = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // In production:
-        // const client = generateClient();
-        // const result = await client.graphql({
-        //   query: getGameDetails,
-        //   variables: { gameId }
-        // });
-        // setGame(result.data.getGameDetails);
-
-        // For development, use mock data
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const foundGame = mockGames.find(g => g.id === gameId);
-        setGame(foundGame || null);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch game details'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (gameId) {
-      fetchGame();
-    }
-  }, [gameId]);
-
-  return { game, isLoading, error };
 }

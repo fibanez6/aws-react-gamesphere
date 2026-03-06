@@ -1,126 +1,192 @@
-import { useState } from 'react';
-import GameCard, { GameCardSkeleton } from '../components/games/GameCard';
-import GameDetailModal from '../components/games/GameDetailModal';
-import GameFilter from '../components/games/GameFilter';
-import TopGamesLeaderboard from '../components/games/TopGamesLeaderboard';
-import { useTopGames } from '../hooks/useTopGames';
-import { Game, GameFilter as GameFilterType } from '../types';
+import useTopGames from '@/hooks/useTopGames';
+import { useParams } from 'react-router-dom';
+import { RankBadge } from '../components/common/Badge';
+import { TableRowSkeleton } from '../components/common/Skeleton';
+import { useUser } from '../context/UserContext';
 
 export default function TopGames() {
-  const [filter, setFilter] = useState<GameFilterType>({
-    sortBy: 'activePlayers',
-    timeRange: '7d',
-  });
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const { games, isLoading } = useTopGames(filter);
+  const { playerId } = useParams<{ playerId?: string }>();
+  const { userProfile: loggedInUser } = useUser();
+  const { games, isFriend, targetUsername, loading, error } = useTopGames(playerId);
+
+  const isOwnPage = !playerId || playerId === loggedInUser?.id;
+
+  // Access denied state
+  if (!loading && !isOwnPage && !isFriend) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="text-3xl font-bold">Top Games</h1>
+          <p className="text-dark-400 mt-1">
+            {targetUsername ? `${targetUsername}'s` : "This player's"} game stats are private.
+          </p>
+        </div>
+        <div className="card text-center py-16">
+          <span className="text-5xl mb-4 block">🔒</span>
+          <h3 className="text-lg font-semibold mb-2">Friends Only</h3>
+          <p className="text-dark-400 max-w-md mx-auto">
+            You must be friends with this player to view their top games.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold">Top Games</h1>
+        <h1 className="text-3xl font-bold">
+          {isOwnPage ? 'My Top Games' : `${targetUsername ?? 'Player'}'s Top Games`}
+        </h1>
         <p className="text-dark-400 mt-1">
-          Discover trending and popular games across all platforms
+          {isOwnPage
+            ? 'Your most-played games ranked by hours'
+            : `Viewing ${targetUsername ?? 'player'}'s game stats`}
         </p>
       </div>
 
-      {/* Filters */}
-      <GameFilter filter={filter} onFilterChange={setFilter} />
+      {/* Error state */}
+      {error && (
+        <div className="card border border-red-500/30 bg-red-500/10 text-red-300 p-4">
+          Failed to load top games: {error}
+        </div>
+      )}
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Games Grid */}
-        <div className="lg:col-span-3">
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <GameCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : games.length === 0 ? (
-            <div className="card text-center py-12">
-              <p className="text-dark-400 mb-4">No games found matching your filters</p>
-              <button
-                onClick={() => setFilter({})}
-                className="btn-primary"
-              >
-                Clear Filters
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {games.map((game) => (
-                <GameCard
-                  key={game.id}
-                  game={game}
-                  onClick={() => setSelectedGame(game)}
-                />
-              ))}
-            </div>
+      {/* Stats summary cards */}
+      {!loading && games.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <SummaryCard
+            label="Games Played"
+            value={games.length.toString()}
+            icon="🎮"
+          />
+          <SummaryCard
+            label="Total Hours"
+            value={`${games.reduce((s, g) => s + g.hoursPlayed, 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`}
+            icon="⏱️"
+          />
+          <SummaryCard
+            label="Avg. Win Rate"
+            value={`${Math.round(games.reduce((s, g) => s + g.winRate, 0) / games.length)}%`}
+            icon="🏆"
+          />
+          <SummaryCard
+            label="Total Matches"
+            value={games.reduce((s, g) => s + g.totalMatches, 0).toLocaleString()}
+            icon="⚔️"
+          />
+        </div>
+      )}
+
+      {/* Games table */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Game Statistics</h3>
+          {!loading && (
+            <span className="text-sm text-dark-400">{games.length} games</span>
           )}
         </div>
 
-        {/* Sidebar - Leaderboard */}
-        <div className="lg:col-span-1">
-          <TopGamesLeaderboard
-            games={games}
-            isLoading={isLoading}
-            onSelectGame={setSelectedGame}
-          />
-
-          {/* Quick Stats */}
-          <div className="card mt-6">
-            <h4 className="font-semibold mb-4">Platform Stats</h4>
-            <div className="space-y-3">
-              <PlatformStat platform="PC" players={1250000} />
-              <PlatformStat platform="PlayStation" players={890000} />
-              <PlatformStat platform="Xbox" players={750000} />
-              <PlatformStat platform="Switch" players={420000} />
-              <PlatformStat platform="Mobile" players={2100000} />
-            </div>
+        {loading ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
+                  <th className="pb-3 font-medium">#</th>
+                  <th className="pb-3 font-medium">Game</th>
+                  <th className="pb-3 font-medium">Hours</th>
+                  <th className="pb-3 font-medium">Win Rate</th>
+                  <th className="pb-3 font-medium">Rank</th>
+                  <th className="pb-3 font-medium">W / L</th>
+                  <th className="pb-3 font-medium">Last Played</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRowSkeleton key={i} columns={7} />
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        ) : games.length === 0 ? (
+          <p className="text-dark-400 text-center py-8">No game statistics yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
+                  <th className="pb-3 font-medium">#</th>
+                  <th className="pb-3 font-medium">Game</th>
+                  <th className="pb-3 font-medium">Hours</th>
+                  <th className="pb-3 font-medium">Win Rate</th>
+                  <th className="pb-3 font-medium">Rank</th>
+                  <th className="pb-3 font-medium">W / L</th>
+                  <th className="pb-3 font-medium">Last Played</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dark-700/50">
+                {games.map((game, idx) => (
+                  <tr key={game.gameStatsId} className="hover:bg-dark-700/30 transition-colors">
+                    <td className="py-4 text-dark-400 font-mono text-sm">{idx + 1}</td>
+                    <td className="py-4">
+                      <div className="flex items-center gap-3">
+                        {game.gameCover && (
+                          <img
+                            src={game.gameCover}
+                            alt={game.gameName}
+                            className="w-10 h-14 rounded object-cover hidden sm:block"
+                          />
+                        )}
+                        <span className="font-medium">{game.gameName}</span>
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <span className="text-primary-400 font-medium">
+                        {game.hoursPlayed.toLocaleString(undefined, { maximumFractionDigits: 1 })}h
+                      </span>
+                    </td>
+                    <td className="py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-2 bg-dark-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 rounded-full"
+                            style={{ width: `${Math.min(game.winRate, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-sm">{Math.round(game.winRate)}%</span>
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <RankBadge rank={game.rank ?? 'Unranked'} size="sm" />
+                    </td>
+                    <td className="py-4">
+                      <span className="text-green-400">{game.wins}</span>
+                      <span className="text-dark-500 mx-1">/</span>
+                      <span className="text-red-400">{game.losses}</span>
+                    </td>
+                    <td className="py-4 text-dark-400 text-sm">
+                      {new Date(game.lastPlayed).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-
-      {/* Game Detail Modal */}
-      <GameDetailModal
-        game={selectedGame}
-        isOpen={!!selectedGame}
-        onClose={() => setSelectedGame(null)}
-      />
     </div>
   );
 }
 
-interface PlatformStatProps {
-  platform: string;
-  players: number;
-}
-
-function PlatformStat({ platform, players }: PlatformStatProps) {
-  const icons: Record<string, string> = {
-    PC: '💻',
-    PlayStation: '🎮',
-    Xbox: '🎯',
-    Switch: '🕹️',
-    Mobile: '📱',
-  };
-
-  const formatPlayers = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
-    return num.toString();
-  };
-
+function SummaryCard({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span>{icons[platform]}</span>
-        <span className="text-sm">{platform}</span>
+    <div className="card flex items-center gap-3">
+      <span className="text-2xl">{icon}</span>
+      <div>
+        <p className="text-dark-400 text-xs">{label}</p>
+        <p className="text-lg font-bold">{value}</p>
       </div>
-      <span className="text-sm text-primary-400 font-medium">
-        {formatPlayers(players)} playing
-      </span>
     </div>
   );
 }

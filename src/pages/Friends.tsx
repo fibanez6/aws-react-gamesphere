@@ -1,196 +1,155 @@
-import { useCallback, useState } from 'react';
+import { clsx } from 'clsx';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AddFriendModal from '../components/friends/AddFriendModal';
-import FriendActivityStream from '../components/friends/FriendActivityStream';
-import FriendCard from '../components/friends/FriendCard';
-import FriendsList from '../components/friends/FriendsList';
-import { useAuth } from '../context/AuthContext';
-import { useFriends } from '../hooks/useFriends';
-import { useRecentActivities } from '../hooks/useUserStats';
-import { Friend } from '../types';
+import FriendCard, { FriendCardSkeleton } from '../components/friends/FriendCard';
+import useFriends from '../hooks/useFriends';
+
+type Tab = 'accepted' | 'pending' | 'declined';
+
+const tabs: { key: Tab; label: string; icon: string }[] = [
+  { key: 'accepted', label: 'Friends', icon: '👥' },
+  { key: 'pending', label: 'Pending', icon: '⏳' },
+  { key: 'declined', label: 'Declined', icon: '🚫' },
+];
 
 export default function Friends() {
+  const { accepted, pending, declined, loading, error, refresh, removeFriend, isRemoving } = useFriends();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { friends, isLoading, onlineFriends, addFriend, removeFriend } = useFriends();
-  const { activities, isLoading: activitiesLoading } = useRecentActivities(user?.id || '', 10);
+  const [activeTab, setActiveTab] = useState<Tab>('accepted');
 
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const lists: Record<Tab, typeof accepted> = { accepted, pending, declined };
+  const currentList = lists[activeTab];
 
-  const handleViewProfile = (friend: Friend) => {
-    navigate(`/profile/${friend.id}`);
+  const counts: Record<Tab, number> = {
+    accepted: accepted.length,
+    pending: pending.length,
+    declined: declined.length,
   };
 
-  const handleRemoveFriend = async (friendId: string) => {
-    if (window.confirm('Are you sure you want to remove this friend?')) {
-      await removeFriend(friendId);
-      if (selectedFriend?.id === friendId) {
-        setSelectedFriend(null);
-      }
-    }
+  const handleViewProfile = (friendId: string) => {
+    navigate(`/profile/${friendId}`);
   };
-
-  const handleAddFriend = useCallback(async (username: string) => {
-    await addFriend(username);
-  }, [addFriend]);
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Friends & Social Hub</h1>
-          <p className="text-dark-400 mt-1">
-            Connect with friends and see what they're playing
-          </p>
+          <h1 className="text-3xl font-bold">
+            Friends <span className="text-dark-400 text-xl font-normal">({accepted.length})</span>
+          </h1>
+          <p className="text-dark-400 mt-1">Manage your friends list and stay connected</p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex bg-dark-800 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-dark-700 text-white'
-                  : 'text-dark-400 hover:text-white'
-              }`}
-            >
-              <ListIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-dark-700 text-white'
-                  : 'text-dark-400 hover:text-white'
-              }`}
-            >
-              <GridIcon className="w-4 h-4" />
-            </button>
-          </div>
-          <button
-            onClick={() => setIsAddFriendModalOpen(true)}
-            className="btn-primary"
-          >
-            <UserPlusIcon className="w-5 h-5" />
-            Add Friend
-          </button>
-        </div>
+        <button
+          onClick={refresh}
+          disabled={loading}
+          className="btn-secondary text-sm flex items-center gap-2"
+        >
+          <RefreshIcon className={clsx('w-4 h-4', loading && 'animate-spin')} />
+          Refresh
+        </button>
       </div>
 
-      {/* Online Friends Banner */}
-      {onlineFriends.length > 0 && (
-        <div className="bg-dark-800/50 border border-dark-700 rounded-xl p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="online-indicator" />
-              <span className="text-green-400 font-medium">
-                {onlineFriends.length} friends online
+      {/* Tabs */}
+      <div className="flex gap-1 bg-dark-800/50 rounded-lg p-1 w-fit">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200',
+              activeTab === tab.key
+                ? 'bg-dark-700 text-white shadow-sm'
+                : 'text-dark-400 hover:text-white hover:bg-dark-700/50',
+            )}
+          >
+            <span>{tab.icon}</span>
+            {tab.label}
+            {counts[tab.key] > 0 && (
+              <span
+                className={clsx(
+                  'min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs font-bold px-1.5',
+                  activeTab === tab.key
+                    ? 'bg-primary-500/30 text-primary-300'
+                    : 'bg-dark-600 text-dark-300',
+                )}
+              >
+                {counts[tab.key]}
               </span>
-            </div>
-            <div className="flex -space-x-2">
-              {onlineFriends.slice(0, 5).map((friend) => (
-                <img
-                  key={friend.id}
-                  src={friend.avatar}
-                  alt={friend.username}
-                  className="w-8 h-8 rounded-full ring-2 ring-dark-800"
-                />
-              ))}
-            </div>
-          </div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-300 text-sm">
+          {error}
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Friends List/Grid */}
-        <div className="lg:col-span-2">
-          {viewMode === 'list' ? (
-            <FriendsList
-              friends={friends}
-              isLoading={isLoading}
-              onSelectFriend={setSelectedFriend}
+      {/* Friend Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <FriendCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : currentList.length === 0 ? (
+        <TabState tab={activeTab} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {currentList.map((friend) => (
+            <FriendCard
+              key={friend.friendshipId}
+              friend={friend}
+              onRemove={removeFriend}
+              onViewProfile={handleViewProfile}
+              isRemoving={isRemoving}
             />
-          ) : (
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4">
-                All Friends ({friends.length})
-              </h3>
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="animate-pulse bg-dark-700 rounded-xl h-48" />
-                  ))}
-                </div>
-              ) : friends.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-dark-400 mb-4">No friends yet</p>
-                  <button
-                    onClick={() => setIsAddFriendModalOpen(true)}
-                    className="btn-primary"
-                  >
-                    Add Your First Friend
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {friends.map((friend) => (
-                    <FriendCard
-                      key={friend.id}
-                      friend={friend}
-                      onViewProfile={() => handleViewProfile(friend)}
-                      onRemoveFriend={() => handleRemoveFriend(friend.id)}
-                      onSendMessage={() => console.log('Message', friend.username)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          ))}
         </div>
-
-        {/* Activity Stream */}
-        <div className="lg:col-span-1">
-          <FriendActivityStream
-            activities={activities}
-            isLoading={activitiesLoading}
-          />
-        </div>
-      </div>
-
-      {/* Add Friend Modal */}
-      <AddFriendModal
-        isOpen={isAddFriendModalOpen}
-        onClose={() => setIsAddFriendModalOpen(false)}
-        onAddFriend={handleAddFriend}
-      />
+      )}
     </div>
   );
 }
 
-function ListIcon({ className }: { className?: string }) {
+function TabState({ tab }: { tab: Tab }) {
+  const messages: Record<Tab, { icon: string; title: string; description: string }> = {
+    accepted: {
+      icon: '👥',
+      title: 'No friends yet',
+      description: 'Start connecting with other players to grow your friends list.',
+    },
+    pending: {
+      icon: '⏳',
+      title: 'No pending requests',
+      description: 'All friend requests have been handled.',
+    },
+    declined: {
+      icon: '✅',
+      title: 'Nothing here',
+      description: 'No declined requests to show.',
+    },
+  };
+
+  const msg = messages[tab];
+
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-    </svg>
+    <div className="card flex flex-col items-center justify-center py-16 text-center">
+      <span className="text-5xl mb-4">{msg.icon}</span>
+      <h3 className="text-lg font-semibold text-white mb-1">{msg.title}</h3>
+      <p className="text-dark-400 text-sm max-w-sm">{msg.description}</p>
+    </div>
   );
 }
 
-function GridIcon({ className }: { className?: string }) {
+function RefreshIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-    </svg>
-  );
-}
-
-function UserPlusIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+      />
     </svg>
   );
 }

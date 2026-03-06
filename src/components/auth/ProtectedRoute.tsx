@@ -1,15 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthenticator } from "@aws-amplify/ui-react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const location = useLocation();
 
-  if (isLoading) {
+  if (authStatus === "configuring") {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -20,9 +20,27 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (authStatus !== "authenticated") {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
+  return children;
 }
+
+
+// import { useAuthenticator } from "@aws-amplify/ui-react";
+// import { Navigate } from "react-router-dom";
+
+// export default function ProtectedRoute({ children }) {
+//   const { authStatus } = useAuthenticator(context => [context.authStatus]);
+
+//   if (authStatus === "configuring") {
+//     return <div>Loading...</div>;
+//   }
+
+//   if (authStatus !== "authenticated") {
+//     return <Navigate to="/login" replace />;
+//   }
+
+//   return children;
+// }

@@ -1,142 +1,121 @@
-import { useCallback, useEffect, useState } from 'react';
-import { mockActivities, mockFriends } from '../data/mockData';
-import { Activity, Friend, FriendStatusChangeEvent } from '../types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { dataClient } from '../config/amplifyClient';
+import { debugLog } from '../config/environment';
+import { useUser } from '../context/UserContext';
+import type { Friendship, User } from '../types';
 
-interface UseFriendsResult {
-  friends: Friend[];
-  isLoading: boolean;
-  error: Error | null;
-  onlineFriends: Friend[];
-  offlineFriends: Friend[];
-  refetch: () => void;
-  addFriend: (userId: string) => Promise<void>;
-  removeFriend: (friendId: string) => Promise<void>;
+export interface FriendView {
+  friendshipId: string;
+  friendId: string;
+  username: string;
+  avatar: string;
+  level: number;
+  rank: string | null;
+  status: Friendship['status'];
+  onlineStatus: User['status'];
+  friendSince: string | null;
+  note: string | null;
+  playingGame: string | null;
+  interactionCount: number | null;
+  lastInteractionAt: string | null;
+  updatedAt: string;
 }
 
-export function useFriends(): UseFriendsResult {
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+interface FriendsData {
+  accepted: FriendView[];
+  pending: FriendView[];
+  declined: FriendView[];
+}
 
-  const fetchFriends = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // In production:
-      // const client = generateClient();
-      // const result = await client.graphql({ query: getFriends, variables: { userId } });
-      // setFriends(result.data.getFriends.items);
+async function fetchFriends(userId: string): Promise<FriendsData> {
+  // Fetch friendships where the user is the requester
+  const { data: asRequester, errors: e1 } = await dataClient.models.Friendship.list({
+    filter: { requesterId: { eq: userId } },
+  });
+  if (e1?.length) throw new Error(e1.map((e) => e.message).join(', '));
 
-      // For development, use mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setFriends(mockFriends);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch friends'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // Fetch friendships where the user is the addressee
+  const { data: asAddressee, errors: e2 } = await dataClient.models.Friendship.list({
+    filter: { addresseeId: { eq: userId } },
+  });
+  if (e2?.length) throw new Error(e2.map((e) => e.message).join(', '));
 
-  useEffect(() => {
-    fetchFriends();
-  }, [fetchFriends]);
+  const allFriendships = [...(asRequester ?? []), ...(asAddressee ?? [])];
 
-  const addFriend = useCallback(async (userId: string) => {
-    try {
-      // In production:
-      // const client = generateClient();
-      // await client.graphql({ query: sendFriendRequestMutation, variables: { toUserId: userId } });
+  // Deduplicate — keep only unique friendship IDs
+  const unique = [...new Map(allFriendships.map((f) => [f.id, f])).values()];
 
-      // For development
-      await new Promise(resolve => setTimeout(resolve, 300));
-      console.log(`Friend request sent to ${userId}`);
-    } catch (err) {
-      throw err instanceof Error ? err : new Error('Failed to send friend request');
-    }
-  }, []);
+  // Resolve friend user details in parallel
+  const friendUserIds = unique.map((f) =>
+    f.requesterId === userId ? f.addresseeId : f.requesterId,
+  );
 
-  const removeFriend = useCallback(async (friendId: string) => {
-    try {
-      // In production:
-      // const client = generateClient();
-      // await client.graphql({ query: removeFriendMutation, variables: { friendId } });
+  const friendUsers = await Promise.all(
+    friendUserIds.map((id) => dataClient.models.User.get({ id })),
+  );
 
-      // For development
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setFriends(prev => prev.filter(f => f.id !== friendId));
-    } catch (err) {
-      throw err instanceof Error ? err : new Error('Failed to remove friend');
-    }
-  }, []);
+  const friendViews: FriendView[] = unique.map((f, i) => {
+    const friendUserId = friendUserIds[i];
+    const friendUser = friendUsers[i].data;
 
-  const onlineFriends = friends.filter(f => f.isOnline);
-  const offlineFriends = friends.filter(f => !f.isOnline);
+    debugLog('Processing friendship:', { friendshipId: f.id, friendUserId, friendUser });
+
+    return {
+      friendshipId: f.id,
+      friendId: friendUserId,
+      username: friendUser?.username ?? 'Unknown',
+      avatar: friendUser?.avatar ?? `https://api.dicebear.com/7.x/adventurer/svg?seed=${friendUserId}`,
+      level: friendUser?.level ?? 0,
+      rank: friendUser?.rank ?? null,
+      status: f.status,
+      onlineStatus: friendUser?.status ?? 'OFFLINE',
+      friendSince: f.friendSince ?? null,
+      note: f.note ?? null,
+      playingGame: null,
+      interactionCount: f.interactionCount ?? 0,
+      lastInteractionAt: f.lastInteractionAt ?? null,
+      updatedAt: f.updatedAt,
+    };
+  });
+
+  debugLog('Friends fetched:', { total: friendViews.length });
 
   return {
-    friends,
-    isLoading,
-    error,
-    onlineFriends,
-    offlineFriends,
-    refetch: fetchFriends,
-    addFriend,
-    removeFriend,
+    accepted: friendViews.filter((f) => f.status === 'ACCEPTED'),
+    pending: friendViews.filter((f) => f.status === 'PENDING'),
+    declined: friendViews.filter((f) => f.status === 'DECLINED'),
   };
 }
 
-// Hook for friend status subscription
-export function useFriendStatusSubscription(
-  onStatusChange: (event: FriendStatusChangeEvent) => void
-) {
-  useEffect(() => {
-    // In production:
-    // const client = generateClient();
-    // const subscription = client.graphql({
-    //   query: onFriendStatusChange,
-    //   variables: { userId }
-    // }).subscribe({
-    //   next: ({ data }) => onStatusChange(data.onFriendStatusChange),
-    //   error: (err) => console.error('Subscription error:', err)
-    // });
-    // return () => subscription.unsubscribe();
+export default function useFriends() {
+  const { userProfile } = useUser();
+  const userId = userProfile?.id;
+  const queryClient = useQueryClient();
 
-    // For development, simulate random status changes
-    const interval = setInterval(() => {
-      const randomFriend = mockFriends[Math.floor(Math.random() * mockFriends.length)];
-      const event: FriendStatusChangeEvent = {
-        friendId: randomFriend.id,
-        isOnline: !randomFriend.isOnline,
-        status: randomFriend.isOnline ? 'offline' : 'online',
-      };
-      onStatusChange(event);
-    }, 30000); // Every 30 seconds
+  const { data, isFetching, error, refetch } = useQuery<FriendsData, Error>({
+    queryKey: ['friends', userId],
+    queryFn: () => fetchFriends(userId!),
+    enabled: !!userId,
+  });
 
-    return () => clearInterval(interval);
-  }, [onStatusChange]);
-}
+  const removeMutation = useMutation({
+    mutationFn: async (friendshipId: string) => {
+      const { errors } = await dataClient.models.Friendship.delete({ id: friendshipId });
+      if (errors?.length) throw new Error(errors.map((e) => e.message).join(', '));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['friends', userId] });
+    },
+  });
 
-// Hook for friend activity subscription
-export function useFriendActivitySubscription(
-  onActivity: (activity: Activity) => void
-) {
-  useEffect(() => {
-    // In production:
-    // const client = generateClient();
-    // const subscription = client.graphql({
-    //   query: onFriendActivity,
-    //   variables: { userId }
-    // }).subscribe({
-    //   next: ({ data }) => onActivity(data.onFriendActivity.activity),
-    //   error: (err) => console.error('Subscription error:', err)
-    // });
-    // return () => subscription.unsubscribe();
-
-    // For development, simulate random activities
-    const interval = setInterval(() => {
-      const randomActivity = mockActivities[Math.floor(Math.random() * mockActivities.length)];
-      onActivity({ ...randomActivity, id: `act_${Date.now()}`, createdAt: new Date().toISOString() });
-    }, 60000); // Every minute
-
-    return () => clearInterval(interval);
-  }, [onActivity]);
+  return {
+    accepted: data?.accepted ?? [],
+    pending: data?.pending ?? [],
+    declined: data?.declined ?? [],
+    loading: isFetching,
+    error: error?.message ?? null,
+    refresh: async () => { await refetch(); },
+    removeFriend: removeMutation.mutate,
+    isRemoving: removeMutation.isPending,
+  };
 }

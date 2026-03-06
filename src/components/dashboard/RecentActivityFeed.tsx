@@ -1,11 +1,11 @@
 import { clsx } from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
-import { Activity } from '../../types';
+import type { PlayerActivities } from '../../hooks/useDashboard';
 import Avatar from '../common/Avatar';
 import { ListItemSkeleton } from '../common/Skeleton';
 
 interface RecentActivityFeedProps {
-  activities: Activity[];
+  activities: PlayerActivities[];
   isLoading: boolean;
 }
 
@@ -45,18 +45,18 @@ export default function RecentActivityFeed({ activities, isLoading }: RecentActi
   );
 }
 
-function ActivityItem({ activity }: { activity: Activity }) {
+function ActivityItem({ activity }: { activity: PlayerActivities }) {
   const getActivityIcon = () => {
     switch (activity.type) {
-      case 'game_played':
+      case 'GAME_PLAYED':
         return <GameIcon className="w-4 h-4" />;
-      case 'achievement_unlocked':
+      case 'ACHIEVEMENT_UNLOCKED':
         return <TrophyIcon className="w-4 h-4" />;
-      case 'friend_added':
+      case 'FRIEND_ADDED':
         return <UserPlusIcon className="w-4 h-4" />;
-      case 'level_up':
+      case 'LEVEL_UP':
         return <StarIcon className="w-4 h-4" />;
-      case 'rank_up':
+      case 'RANK_UP':
         return <ArrowUpIcon className="w-4 h-4" />;
       default:
         return <ActivityIcon className="w-4 h-4" />;
@@ -65,15 +65,15 @@ function ActivityItem({ activity }: { activity: Activity }) {
 
   const getActivityColor = () => {
     switch (activity.type) {
-      case 'game_played':
+      case 'GAME_PLAYED':
         return 'bg-primary-500/20 text-primary-400';
-      case 'achievement_unlocked':
+      case 'ACHIEVEMENT_UNLOCKED':
         return 'bg-yellow-500/20 text-yellow-400';
-      case 'friend_added':
+      case 'FRIEND_ADDED':
         return 'bg-green-500/20 text-green-400';
-      case 'level_up':
+      case 'LEVEL_UP':
         return 'bg-accent-500/20 text-accent-400';
-      case 'rank_up':
+      case 'RANK_UP':
         return 'bg-blue-500/20 text-blue-400';
       default:
         return 'bg-dark-600 text-dark-300';
@@ -83,7 +83,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-dark-700/30 transition-colors">
       <Avatar
-        src={activity.avatar}
+        src={activity.avatar ?? ''}
         alt={activity.username}
         size="sm"
       />
@@ -110,20 +110,25 @@ function ActivityItem({ activity }: { activity: Activity }) {
   );
 }
 
-function getActivityDescription(activity: Activity): string {
+function getActivityDescription(activity: PlayerActivities): string {
+  // Use description if available, otherwise derive from type
+  if (activity.description) {
+    return activity.description;
+  }
+  
   switch (activity.type) {
-    case 'game_played':
-      return `played ${activity.metadata.gameName}${activity.metadata.duration ? ` for ${Math.round(activity.metadata.duration / 60)}h` : ''}`;
-    case 'achievement_unlocked':
-      return `unlocked "${activity.metadata.achievementName}"`;
-    case 'friend_added':
+    case 'GAME_PLAYED':
+      return `played ${activity.gameName || 'a game'}`;
+    case 'ACHIEVEMENT_UNLOCKED':
+      return activity.title || 'unlocked an achievement';
+    case 'FRIEND_ADDED':
       return 'added a new friend';
-    case 'level_up':
-      return `reached Level ${activity.metadata.newLevel}`;
-    case 'rank_up':
-      return `reached ${activity.metadata.newRank} rank`;
+    case 'LEVEL_UP':
+      return activity.title || 'leveled up';
+    case 'RANK_UP':
+      return activity.title || 'ranked up';
     default:
-      return activity.description;
+      return activity.title || 'activity';
   }
 }
 

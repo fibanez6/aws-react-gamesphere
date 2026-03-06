@@ -1,10 +1,19 @@
 import { clsx } from 'clsx';
-import { Achievement } from '../../types';
 import { RarityBadge } from '../common/Badge';
 import Skeleton from '../common/Skeleton';
 
+interface AchievementItem {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: string | null;
+  gameName: string | null;
+  unlockedAt: string | null;
+}
+
 interface AchievementGridProps {
-  achievements: Achievement[];
+  achievements: AchievementItem[];
   isLoading: boolean;
 }
 
@@ -51,16 +60,20 @@ export default function AchievementGrid({ achievements, isLoading }: Achievement
   );
 }
 
-function AchievementCard({ achievement }: { achievement: Achievement }) {
-  const rarityGlow = {
+function AchievementCard({ achievement }: { achievement: AchievementItem }) {
+  const rarity = (achievement.rarity ?? 'common').toLowerCase();
+
+  const rarityGlow: Record<string, string> = {
     common: '',
+    uncommon: 'ring-green-500/30',
     rare: 'ring-blue-500/30',
     epic: 'ring-purple-500/30',
     legendary: 'ring-yellow-500/30 glow',
   };
 
-  const rarityBg = {
+  const rarityBg: Record<string, string> = {
     common: 'bg-dark-700/50',
+    uncommon: 'bg-green-900/20',
     rare: 'bg-blue-900/20',
     epic: 'bg-purple-900/20',
     legendary: 'bg-gradient-to-br from-yellow-900/30 to-amber-900/20',
@@ -70,14 +83,14 @@ function AchievementCard({ achievement }: { achievement: Achievement }) {
     <div
       className={clsx(
         'rounded-xl p-4 text-center transition-all duration-300 hover:scale-105 ring-1 ring-dark-700 hover:ring-2',
-        rarityBg[achievement.rarity],
-        rarityGlow[achievement.rarity]
+        rarityBg[rarity],
+        rarityGlow[rarity]
       )}
     >
       <div className="text-4xl mb-3">{achievement.icon}</div>
       <h4 className="font-medium text-sm mb-1">{achievement.name}</h4>
       <p className="text-xs text-dark-400 mb-2 line-clamp-2">{achievement.description}</p>
-      <RarityBadge rarity={achievement.rarity} />
+      <RarityBadge rarity={rarity} />
       {achievement.gameName && (
         <p className="text-xs text-dark-500 mt-2">{achievement.gameName}</p>
       )}
@@ -87,7 +100,7 @@ function AchievementCard({ achievement }: { achievement: Achievement }) {
 
 // Compact Achievement List for sidebar
 interface AchievementListProps {
-  achievements: Achievement[];
+  achievements: AchievementItem[];
   maxItems?: number;
 }
 
@@ -106,7 +119,7 @@ export function AchievementList({ achievements, maxItems = 5 }: AchievementListP
             <p className="text-sm font-medium truncate">{achievement.name}</p>
             <p className="text-xs text-dark-400 truncate">{achievement.gameName}</p>
           </div>
-          <RarityBadge rarity={achievement.rarity} />
+          <RarityBadge rarity={(achievement.rarity ?? 'common').toLowerCase()} />
         </div>
       ))}
     </div>

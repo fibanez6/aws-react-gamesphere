@@ -81,12 +81,14 @@ export function RankBadge({ rank, size = 'md' }: RankBadgeProps) {
 
 // Achievement Rarity Badge
 interface RarityBadgeProps {
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity: string;
 }
 
 export function RarityBadge({ rarity }: RarityBadgeProps) {
-  const rarityStyles = {
+  const key = rarity.toLowerCase();
+  const rarityStyles: Record<string, string> = {
     common: 'bg-gray-500/20 text-gray-300',
+    uncommon: 'bg-green-500/20 text-green-300',
     rare: 'bg-blue-500/20 text-blue-300',
     epic: 'bg-purple-500/20 text-purple-300',
     legendary: 'bg-yellow-500/20 text-yellow-300',
@@ -96,10 +98,10 @@ export function RarityBadge({ rarity }: RarityBadgeProps) {
     <span
       className={clsx(
         'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize',
-        rarityStyles[rarity]
+        rarityStyles[key] ?? 'bg-dark-600/50 text-dark-300'
       )}
     >
-      {rarity}
+      {key}
     </span>
   );
 }
