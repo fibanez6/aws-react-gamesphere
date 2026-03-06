@@ -77,22 +77,23 @@ async function fetchProfileData(userId: string): Promise<ProfileData> {
   };
 }
 
-export default function useProfile(): UseProfileReturn {
+export default function useProfile(targetUserId?: string): UseProfileReturn {
   const { userProfile: authUserProfile, updateProfile: contextUpdateProfile } = useUser();
-  const userId = authUserProfile?.id;
+  const resolvedUserId = targetUserId || authUserProfile?.id;
+  const isOwnProfile = !targetUserId || targetUserId === authUserProfile?.id;
   const queryClient = useQueryClient();
 
   const { data, isFetching, error, refetch } = useQuery<ProfileData, Error>({
-    queryKey: ['profile', userId],
-    queryFn: () => fetchProfileData(userId!),
-    enabled: !!userId,
+    queryKey: ['profile', resolvedUserId],
+    queryFn: () => fetchProfileData(resolvedUserId!),
+    enabled: !!resolvedUserId,
   });
 
   const mutation = useMutation({
     mutationFn: (fields: Partial<Pick<PlayerProfile, 'username' | 'avatar' | 'status'>>) =>
       contextUpdateProfile(fields),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['profile', resolvedUserId] });
     },
   });
 
@@ -107,7 +108,9 @@ export default function useProfile(): UseProfileReturn {
     achievements: data?.achievements ?? null,
     loading: isFetching,
     error: error?.message ?? null,
-    updateProfile: (fields) => mutation.mutateAsync(fields),
+    updateProfile: isOwnProfile
+      ? (fields) => mutation.mutateAsync(fields)
+      : async () => { throw new Error('Cannot edit another player\'s profile'); },
     refresh: async () => { await refetch(); },
   };
 }

@@ -75,16 +75,17 @@ export interface GameSession {
 }
 
 // Friend Types
-export interface Friend {
-  id: string;
-  username: string;
-  avatar: string;
-  level: number;
-  isOnline: boolean;
-  currentGame?: string;
-  lastActiveAt: string;
-  status: 'online' | 'offline' | 'in-game' | 'away';
-}
+export type Friendship = Schema['Friendship']['type'];
+// export interface Friend {
+//   id: string;
+//   username: string;
+//   avatar: string;
+//   level: number;
+//   isOnline: boolean;
+//   currentGame?: string;
+//   lastActiveAt: string;
+//   status: 'online' | 'offline' | 'in-game' | 'away';
+// }
 
 export interface FriendRequest {
   id: string;
