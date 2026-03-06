@@ -9,9 +9,9 @@ import {
     fixupConfigRules,
 } from "@eslint/compat";
 
+import js from "@eslint/js";
 import tsParser from "@typescript-eslint/parser";
 import reactRefresh from "eslint-plugin-react-refresh";
-import js from "@eslint/js";
 
 import {
     FlatCompat,
@@ -47,4 +47,4 @@ export default defineConfig([{
             allowConstantExport: true,
         }],
     },
-}, globalIgnores(["**/dist"])]);
+}, globalIgnores(["**/dist", "**/.amplify/**", "scripts/**"])]);
