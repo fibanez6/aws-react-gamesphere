@@ -121,6 +121,21 @@ const schema = a.schema({
       index('addresseeId').sortKeys(['status']).name('byAddresseeAndStatus'),
     ])
     .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  LeaderboardEntry: a
+    .model({
+      userId: a.id().required(),
+      period: a.enum(["DAILY", "MONTHLY", "ALL_TIME"]),
+      gameId: a.id(),
+      gameName: a.string(),
+      hoursPlayed: a.float().required().default(0),
+      wins: a.integer().required().default(0),
+      achievementsUnlocked: a.integer().required().default(0),
+      winRate: a.float().required().default(0),
+      totalMatches: a.integer().required().default(0),
+      periodStart: a.datetime().required(),
+    })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
