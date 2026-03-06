@@ -21,7 +21,7 @@ const schema = a.schema({
       gameStats: a.hasMany('GameStats', 'userId'),
       achievements: a.hasMany('Achievement', 'userId'),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
 
   Game: a
     .model({
@@ -105,6 +105,21 @@ const schema = a.schema({
       unlockedAt: a.datetime(),
       gameName: a.string(),
     })
+    .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
+
+  Friendship: a
+    .model({
+      requesterId: a.id().required(),
+      addresseeId: a.id().required(),
+      status: a.enum(["PENDING", "ACCEPTED", "DECLINED", "BLOCKED"]),
+      friendSince: a.datetime(),
+      note: a.string(),
+      interactionCount: a.integer().default(0),
+      lastInteractionAt: a.datetime(),
+    })
+    .secondaryIndexes((index) => [
+      index('addresseeId').sortKeys(['status']).name('byAddresseeAndStatus'),
+    ])
     .authorization((allow) => [allow.authenticated().to(["read"]), allow.owner()]),
 });
 

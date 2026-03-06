@@ -5,14 +5,16 @@ import GameStatsTable from '../components/profile/GameStatsTable';
 import PlayerInfo from '../components/profile/PlayerInfo';
 import StatRow from '../components/profile/StatRow';
 import { debugLog } from '../config/environment';
+import { useUser } from '../context/UserContext';
 
 export default function Profile() {
-    const { userProfile, playerStats, gameStats, achievements, loading } = useProfile();
-
     const { playerId } = useParams<{ playerId?: string }>();
-
-    const isOwnProfile = !playerId || playerId === userProfile?.id;
-
+    const { userProfile: loggedInUser } = useUser();
+    
+    const { userProfile, playerStats, gameStats, achievements, loading } = useProfile(playerId);
+    
+    const isOwnProfile = !playerId || playerId === loggedInUser?.id;
+    
     debugLog('Rendering Profile page for playerId:', playerId, 'isOwnProfile:', isOwnProfile);
 
     return (

@@ -108,6 +108,7 @@ async function discoverTableNames() {
       else if (/^Activity-/i.test(name)) tableMap.Activity = name;
       else if (/^GameStats-/i.test(name)) tableMap.GameStats = name;
       else if (/^Achievement-/i.test(name)) tableMap.Achievement = name;
+      else if (/^Friendship-/i.test(name)) tableMap.Friendship = name;
     }
     exclusiveStartTableName = LastEvaluatedTableName;
   } while (exclusiveStartTableName);
@@ -418,6 +419,87 @@ function generateAchievements(users, games) {
   }));
 }
 
+function generateFriendships(users) {
+  const pastDate = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString();
+  };
+
+  return [
+    // AlexStorm & LunaCipher — accepted friends
+    {
+      id: "friendship-001",
+      requesterId: users[0].id,
+      addresseeId: users[1].id,
+      status: "ACCEPTED",
+      friendSince: pastDate(90),
+      note: "Met in CyberStrike ranked",
+      interactionCount: 74,
+      lastInteractionAt: pastDate(0),
+      owner: users[0].id,
+      createdAt: pastDate(95),
+      updatedAt: pastDate(90),
+    },
+    // AlexStorm & KaiPhoenix — accepted friends
+    {
+      id: "friendship-002",
+      requesterId: users[2].id,
+      addresseeId: users[0].id,
+      status: "ACCEPTED",
+      friendSince: pastDate(200),
+      note: "OG gaming buddy",
+      interactionCount: 152,
+      lastInteractionAt: pastDate(1),
+      owner: users[2].id,
+      createdAt: pastDate(210),
+      updatedAt: pastDate(200),
+    },
+    // LunaCipher & KaiPhoenix — accepted friends
+    {
+      id: "friendship-003",
+      requesterId: users[1].id,
+      addresseeId: users[2].id,
+      status: "ACCEPTED",
+      friendSince: pastDate(45),
+      note: null,
+      interactionCount: 31,
+      lastInteractionAt: pastDate(3),
+      owner: users[1].id,
+      createdAt: pastDate(50),
+      updatedAt: pastDate(45),
+    },
+    // Pending request from AlexStorm to a hypothetical addressee (KaiPhoenix's alt scenario)
+    {
+      id: "friendship-004",
+      requesterId: users[0].id,
+      addresseeId: users[2].id,
+      status: "PENDING",
+      friendSince: null,
+      note: "Want to team up in Neon Arena",
+      interactionCount: 0,
+      lastInteractionAt: null,
+      owner: users[0].id,
+      createdAt: pastDate(2),
+      updatedAt: pastDate(2),
+    },
+    // Declined request from LunaCipher to AlexStorm
+    {
+      id: "friendship-005",
+      requesterId: users[1].id,
+      addresseeId: users[0].id,
+      status: "DECLINED",
+      friendSince: null,
+      note: null,
+      interactionCount: 0,
+      lastInteractionAt: null,
+      owner: users[1].id,
+      createdAt: pastDate(120),
+      updatedAt: pastDate(118),
+    },
+  ];
+}
+
 function generateActivities(users, games) {
   // Helper to create a past date (daysAgo days before now)
   const pastDate = (daysAgo, hoursAgo = 0) => {
@@ -662,7 +744,7 @@ async function main() {
   console.log("🔍 Discovering Amplify-generated DynamoDB tables...");
   const tableMap = await discoverTableNames();
 
-  const requiredModels = ["User", "Game", "PlayerStats", "Activity", "GameStats", "Achievement"];
+  const requiredModels = ["User", "Game", "PlayerStats", "Activity", "GameStats", "Achievement", "Friendship"];
   const missing = requiredModels.filter((m) => !tableMap[m]);
 
   if (missing.length > 0) {
@@ -708,6 +790,7 @@ async function main() {
   const activities = generateActivities(users, games);
   const gameStatsList = generateGameStats(users, games);
   const achievements = generateAchievements(users, games);
+  const friendships = generateFriendships(users);
 
   // Write in dependency order: Users first, then Games, then child tables
   console.log("📝 Seeding User table...");
@@ -734,8 +817,12 @@ async function main() {
   const achievementsWritten = await batchWriteItems(tableMap.Achievement, achievements);
   console.log(`   ✓ ${achievementsWritten} achievements written\n`);
 
+  console.log("📝 Seeding Friendship table...");
+  const friendshipsWritten = await batchWriteItems(tableMap.Friendship, friendships);
+  console.log(`   ✓ ${friendshipsWritten} friendships written\n`);
+
   console.log("✅ Seed complete!");
-  console.log(`   Total items: ${usersWritten + gamesWritten + statsWritten + activitiesWritten + gameStatsWritten + achievementsWritten}`);
+  console.log(`   Total items: ${usersWritten + gamesWritten + statsWritten + activitiesWritten + gameStatsWritten + achievementsWritten + friendshipsWritten}`);
   console.log(`\n💡 To remove this data run: node scripts/seed-dynamodb-data.js --delete`);
 }
 
