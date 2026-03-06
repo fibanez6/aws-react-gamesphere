@@ -1,6 +1,6 @@
 import { debugLog } from '@/config/environment';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SelectionSet } from 'aws-amplify/data';
-import { useCallback, useEffect, useState } from 'react';
 import { dataClient } from '../config/amplifyClient';
 import { useUser } from '../context/UserContext';
 import type { User } from '../types';
@@ -25,6 +25,13 @@ type PlayerStats = Omit<PlayerProfile['stats'], 'user'> & { hoursThisWeek: numbe
 type GameStats = Omit<PlayerProfile['gameStats'][number], 'user'>;
 type Achievement = Omit<PlayerProfile['achievements'][number], 'user'>;
 
+interface ProfileData {
+  userProfile: PlayerProfile;
+  playerStats: PlayerStats | null;
+  gameStats: GameStats[];
+  achievements: Achievement[];
+}
+
 interface UseProfileReturn {
   userProfile: PlayerProfile | null;
   playerStats: PlayerStats | null;
@@ -36,91 +43,71 @@ interface UseProfileReturn {
   refresh: () => Promise<void>;
 }
 
-export default function useProfile(): UseProfileReturn {
-  const { userProfile, updateProfile } = useUser();
-  const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
-  const [gameStats, setGameStats] = useState<GameStats[] | null>(null);
-  const [achievements, setAchievements] = useState<Achievement[] | null>(null);
+async function fetchProfileData(userId: string): Promise<ProfileData> {
+  const { data: currentUser, errors } = await dataClient.models.User.get(
+    { id: userId },
+    { selectionSet: PROFILE_SELECTION_SET }
+  );
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join(', '));
+  }
 
-  const fetchProfileData = useCallback(async () => {
-      if (!userProfile?.id) {
-          setLoading(false);
-          return;
-      }
+  if (!currentUser) {
+    throw new Error('User not found');
+  }
 
-      setLoading(true);
-      setError(null);
+  let playerStats: PlayerStats | null = null;
+  if (currentUser.stats) {
+    const weeklyPlaytime = (currentUser.stats.weeklyPlaytime ?? []) as number[];
+    const hoursThisWeek = weeklyPlaytime.reduce((sum, h) => sum + h, 0);
+    playerStats = { ...currentUser.stats, hoursThisWeek };
+  }
 
-      try {
-        const { data: currentUser, errors } = await dataClient.models.User.get(
-            { id: userProfile.id },
-            { selectionSet: PROFILE_SELECTION_SET }
-        );
+  const gameStats = (currentUser.gameStats ?? []) as GameStats[];
+  const achievements = (currentUser.achievements ?? []) as Achievement[];
 
-        if (errors?.length) {
-          throw new Error(errors.map((e) => e.message).join(', '));
-        }
+  debugLog('Profile data fetched:', { userId, playerStats, gameStats, achievements });
 
-        if (!currentUser) {
-          setPlayerStats(null);
-          setGameStats([]);
-          return;
-        }
-
-        // Process stats from the nested relation
-        const playerStats = currentUser.stats;
-        if (playerStats) {
-          const weeklyPlaytime = (playerStats.weeklyPlaytime ?? []) as number[];
-          const hoursThisWeek = weeklyPlaytime.reduce((sum, h) => sum + h, 0);
-
-          setPlayerStats({ ...playerStats, hoursThisWeek });
-        } else {
-          setPlayerStats(null);
-        }
-
-        // Process game stats from the nested relation
-        const gameStats = currentUser.gameStats;
-        if (gameStats) {
-          setGameStats(gameStats);
-        } else {
-          setGameStats([]);
-        }
-
-        // Process achievements from the nested relation
-        const achievements = currentUser.achievements;
-        if (achievements) {
-          setAchievements(achievements);
-        } else {
-          setAchievements([]);
-        }
-
-        debugLog('Profile data fetched:', { profile: userProfile, playerStats, gameStats, achievements });
-        
-      } catch (err) {
-          console.error('Failed to fetch profile data:', err);
-          setError(err instanceof Error ? err.message : 'Failed to load profile data');
-      } finally {
-          setLoading(false)
-      }
-    }, [userProfile?.id]);
-
-  useEffect(() => {
-      fetchProfileData();
-  }, [fetchProfileData]);
-
-  const normalizedUserProfile = userProfile ? { ...userProfile, avatar: userProfile.avatar ?? null } : null;
-
-  return { 
-    userProfile: normalizedUserProfile as PlayerProfile | null, 
-    playerStats, 
-    gameStats, 
-    achievements, 
-    loading, 
-    error, 
-    updateProfile, 
-    refresh: fetchProfileData 
+  return {
+    userProfile: currentUser as PlayerProfile,
+    playerStats,
+    gameStats,
+    achievements,
   };
-}   
+}
+
+export default function useProfile(): UseProfileReturn {
+  const { userProfile: authUserProfile, updateProfile: contextUpdateProfile } = useUser();
+  const userId = authUserProfile?.id;
+  const queryClient = useQueryClient();
+
+  const { data, isFetching, error, refetch } = useQuery<ProfileData, Error>({
+    queryKey: ['profile', userId],
+    queryFn: () => fetchProfileData(userId!),
+    enabled: !!userId,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (fields: Partial<Pick<PlayerProfile, 'username' | 'avatar' | 'status'>>) =>
+      contextUpdateProfile(fields),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+    },
+  });
+
+  const normalizedUserProfile = data?.userProfile
+    ? { ...data.userProfile, avatar: data.userProfile.avatar ?? null }
+    : null;
+
+  return {
+    userProfile: normalizedUserProfile as PlayerProfile | null,
+    playerStats: data?.playerStats ?? null,
+    gameStats: data?.gameStats ?? null,
+    achievements: data?.achievements ?? null,
+    loading: isFetching,
+    error: error?.message ?? null,
+    updateProfile: (fields) => mutation.mutateAsync(fields),
+    refresh: async () => { await refetch(); },
+  };
+}
